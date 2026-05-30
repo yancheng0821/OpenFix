@@ -36,13 +36,18 @@ export async function streamAgent(
       const p = part as {
         type: string
         toolName?: string
+        toolCallId?: string
         text?: string
         delta?: string
+        output?: unknown
+        result?: unknown
         error?: unknown
       }
       if (p.type === 'tool-call' && p.toolName) {
         if (p.toolName.startsWith('verify')) onEvent({ type: 'phase', phase: 'verifying' })
-        onEvent({ type: 'step', tool: p.toolName })
+        onEvent({ type: 'step', id: p.toolCallId ?? p.toolName, tool: p.toolName })
+      } else if (p.type === 'tool-result') {
+        onEvent({ type: 'step-done', id: p.toolCallId ?? '', output: p.output ?? p.result })
       } else if (p.type === 'text-delta') {
         const delta = p.text ?? p.delta ?? ''
         if (delta) onEvent({ type: 'text', delta })

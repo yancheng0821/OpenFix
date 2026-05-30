@@ -25,7 +25,8 @@ export interface AgentResult {
 
 export type AgentEvent =
   | { type: 'phase'; phase: 'investigating' | 'fixing' | 'verifying' }
-  | { type: 'step'; tool: string }
+  | { type: 'step'; id: string; tool: string }
+  | { type: 'step-done'; id: string; output: unknown }
   | { type: 'text'; delta: string }
   | { type: 'change'; change: ChangeSummary }
   | { type: 'verify'; passed: boolean }

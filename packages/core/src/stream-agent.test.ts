@@ -58,6 +58,7 @@ describe('streamAgent', () => {
     const result = await streamAgent('我连不上网', { model, tools, onEvent: (e) => events.push(e) })
 
     expect(events.some((e) => e.type === 'step' && e.tool === 'check_connectivity')).toBe(true)
+    expect(events.some((e) => e.type === 'step-done')).toBe(true)
     expect(
       events
         .filter((e) => e.type === 'text')

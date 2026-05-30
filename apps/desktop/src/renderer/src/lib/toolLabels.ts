@@ -17,3 +17,31 @@ const LABELS: Record<string, { label: string; risk: Risk }> = {
 export function toolLabel(tool: string): { label: string; risk: Risk } {
   return LABELS[tool] ?? { label: tool, risk: 'read' }
 }
+
+/** 把工具结果压成一行 mono 技术值（时间线右侧展示，强化"深挖可信度"）。 */
+export function formatDetail(tool: string, output: unknown): string {
+  const o = (output ?? {}) as Record<string, unknown>
+  if (typeof o !== 'object') return ''
+  switch (tool) {
+    case 'check_connectivity':
+      return o.reachable ? `通 · ${o.latencyMs ?? '?'}ms` : '不通'
+    case 'resolve_dns':
+      return o.resolved ? String((o.addresses as string[] | undefined)?.[0] ?? '已解析') : '解析失败'
+    case 'check_proxy':
+      return o.enabled ? `代理 ${o.server}:${o.port}` : '无代理'
+    case 'get_wifi_info':
+      return o.connected ? String(o.ssid) : '未连 Wi-Fi'
+    case 'check_disk_space':
+      return o.available ? `剩 ${o.available}` : ''
+    case 'check_app_installed':
+      return o.installed ? '已安装' : '未安装'
+    case 'set_dns_servers':
+      return '已改 DNS'
+    case 'verify_connectivity':
+      return o.reachable ? '通过' : '未通过'
+    case 'run_diagnostic':
+      return String((o.command as string | undefined) ?? (o.refused ? '已拒绝' : ''))
+    default:
+      return ''
+  }
+}

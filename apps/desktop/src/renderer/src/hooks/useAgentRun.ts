@@ -14,13 +14,26 @@ export interface ChangeSummary {
 
 export type RunPhase = 'idle' | 'investigating' | 'fixing' | 'verifying'
 
+export interface RunStep {
+  id: string
+  tool: string
+  status: 'running' | 'done'
+  output?: unknown
+  at: string
+}
+
 export interface RunState {
   phase: RunPhase
-  steps: string[]
+  steps: RunStep[]
   streamingText: string
 }
 
 export const initialRun: RunState = { phase: 'idle', steps: [], streamingText: '' }
+
+function hhmm(): string {
+  const d = new Date()
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
 
 /** 纯函数：把一个 AgentEvent 折叠进运行态（可独立单测）。 */
 export function reduceEvent(state: RunState, ev: AgentEvent): RunState {
@@ -28,7 +41,17 @@ export function reduceEvent(state: RunState, ev: AgentEvent): RunState {
     case 'phase':
       return { ...state, phase: ev.phase }
     case 'step':
-      return { ...state, steps: [...state.steps, ev.tool] }
+      return {
+        ...state,
+        steps: [...state.steps, { id: ev.id, tool: ev.tool, status: 'running', at: hhmm() }]
+      }
+    case 'step-done':
+      return {
+        ...state,
+        steps: state.steps.map((s) =>
+          s.id === ev.id ? { ...s, status: 'done', output: ev.output } : s
+        )
+      }
     case 'text':
       return { ...state, streamingText: state.streamingText + ev.delta }
     default:
