@@ -12,6 +12,8 @@ export interface RunAgentDeps {
   tools?: ToolSet
   /** 注入 shell（测试用 mock，避免真实系统改动）；不传则用 runReadOnly。 */
   shell?: ShellRunner
+  /** 注入 ChangeLog（main 进程持有，供运行结束后用户"一键还原"）；不传则内部新建。 */
+  changeLog?: ChangeLog
 }
 
 export interface ChatMessage {
@@ -41,7 +43,7 @@ export async function runAgent(
 ): Promise<AgentResult> {
   const model = deps.model ?? getModel()
   const shell = deps.shell ?? runReadOnly
-  const changeLog = new ChangeLog()
+  const changeLog = deps.changeLog ?? new ChangeLog()
   const verification = new Verification()
   const tools =
     deps.tools ?? {

@@ -3,6 +3,7 @@ import { MockLanguageModelV2 } from 'ai/test'
 import { tool, type ToolSet } from 'ai'
 import { z } from 'zod'
 import { runAgent } from './run-agent'
+import { ChangeLog } from './safety/change-log'
 
 // —— 2b 辅助：可配置 ping 退出码的 mock shell（networksetup 恒成功）——
 function mkShell(pingCode: number): {
@@ -207,5 +208,18 @@ describe('runAgent', () => {
     ])
     const result = await runAgent('网连不上', { model, shell })
     expect(result.rolledBack).toBe(true)
+  })
+
+  it('可注入 changeLog：成功修复后改动留在注入的账本里（供会话级还原）', async () => {
+    const { shell } = mkShell(0) // 复测通过
+    const model = scripted([
+      { tool: { name: 'set_dns_servers', input: { service: 'Wi-Fi', servers: ['1.1.1.1'] } } },
+      { tool: { name: 'verify_connectivity', input: { host: '8.8.8.8' } } },
+      { text: '修好了。' }
+    ])
+    const changeLog = new ChangeLog()
+    const result = await runAgent('网连不上', { model, shell, changeLog })
+    expect(result.rolledBack).toBe(false)
+    expect(changeLog.list()).toHaveLength(1) // 改动留在外部注入的账本
   })
 })
