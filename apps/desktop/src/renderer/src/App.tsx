@@ -6,10 +6,18 @@ interface ChatMessage {
   content: string
 }
 
+interface ChangeSummary {
+  id: number
+  description: string
+  riskLevel: 'reversible' | 'irreversible'
+}
+
 function App(): React.JSX.Element {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [changes, setChanges] = useState<ChangeSummary[]>([])
+  const [reverted, setReverted] = useState(false)
   const logRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -24,9 +32,12 @@ function App(): React.JSX.Element {
     setMessages(history)
     setInput('')
     setLoading(true)
+    setChanges([])
+    setReverted(false)
     try {
       const res = await window.api.runAgent(history)
       setMessages((prev) => [...prev, { role: 'assistant', content: res.text }])
+      if (!res.rolledBack && res.changes.length > 0) setChanges(res.changes)
     } catch (e) {
       setMessages((prev) => [
         ...prev,
@@ -41,6 +52,14 @@ function App(): React.JSX.Element {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       void handleSubmit()
+    }
+  }
+
+  async function handleRollback(): Promise<void> {
+    const res = await window.api.rollback()
+    if (res.ok) {
+      setReverted(true)
+      setChanges([])
     }
   }
 
@@ -63,6 +82,21 @@ function App(): React.JSX.Element {
           </div>
         )}
       </div>
+
+      {changes.length > 0 && (
+        <div className="changes" aria-label="本次改动">
+          <div className="changes__title">我改了这些（可还原）：</div>
+          <ul className="changes__list">
+            {changes.map((c) => (
+              <li key={c.id}>{c.description}</li>
+            ))}
+          </ul>
+          <button className="changes__undo" onClick={() => void handleRollback()}>
+            一键还原
+          </button>
+        </div>
+      )}
+      {reverted && <div className="changes changes--reverted">已还原</div>}
 
       <div className="chat__input">
         <textarea

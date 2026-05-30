@@ -4,7 +4,13 @@ import App from './App'
 
 beforeEach(() => {
   ;(window as unknown as { api: unknown }).api = {
-    runAgent: vi.fn().mockResolvedValue({ text: '你的网络是通的。', toolCalls: [] })
+    runAgent: vi.fn().mockResolvedValue({
+      text: '你的网络是通的。',
+      toolCalls: [],
+      changes: [],
+      rolledBack: false
+    }),
+    rollback: vi.fn().mockResolvedValue({ ok: true })
   }
 })
 
@@ -27,5 +33,24 @@ describe('App 对话式', () => {
     fireEvent.change(box, { target: { value: '换行测试' } })
     fireEvent.keyDown(box, { key: 'Enter', shiftKey: true })
     expect(window.api.runAgent).not.toHaveBeenCalled()
+  })
+
+  it('有改动时展示"我改了啥"并能一键还原', async () => {
+    ;(window.api.runAgent as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      text: '已把 DNS 改成 1.1.1.1。',
+      toolCalls: [],
+      changes: [{ id: 1, description: '把 Wi-Fi 的 DNS 设为 1.1.1.1', riskLevel: 'reversible' }],
+      rolledBack: false
+    })
+    render(<App />)
+    fireEvent.change(screen.getByLabelText('问题描述'), { target: { value: '上不了网' } })
+    fireEvent.keyDown(screen.getByLabelText('问题描述'), { key: 'Enter' })
+
+    await waitFor(() =>
+      expect(screen.getByText(/把 Wi-Fi 的 DNS 设为 1\.1\.1\.1/)).toBeInTheDocument()
+    )
+    fireEvent.click(screen.getByText('一键还原'))
+    await waitFor(() => expect(window.api.rollback).toHaveBeenCalled())
+    await waitFor(() => expect(screen.getByText('已还原')).toBeInTheDocument())
   })
 })
