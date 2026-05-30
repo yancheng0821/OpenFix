@@ -4,6 +4,55 @@ import { tool, type ToolSet } from 'ai'
 import { z } from 'zod'
 import { runAgent } from './run-agent'
 
+// —— 2b 辅助：可配置 ping 退出码的 mock shell（networksetup 恒成功）——
+function mkShell(pingCode: number): {
+  shell: (c: string, a: string[]) => Promise<{ code: number; stdout: string; stderr: string }>
+  calls: string[]
+} {
+  const calls: string[] = []
+  const shell = async (cmd: string, args: string[]) => {
+    calls.push([cmd, ...args].join(' '))
+    if (cmd === 'ping')
+      return { code: pingCode, stdout: pingCode === 0 ? 'time=10 ms' : 'timeout', stderr: '' }
+    if (args.includes('-getdnsservers'))
+      return { code: 0, stdout: "There aren't any DNS Servers set on Wi-Fi.", stderr: '' }
+    return { code: 0, stdout: '', stderr: '' }
+  }
+  return { shell, calls }
+}
+
+// —— 2b 辅助：按脚本逐步返回的 mock 模型 ——
+function scripted(steps: Array<{ tool?: { name: string; input: object }; text?: string }>): MockLanguageModelV2 {
+  let i = 0
+  return new MockLanguageModelV2({
+    doGenerate: async () => {
+      const step = steps[Math.min(i, steps.length - 1)]
+      i += 1
+      if (step.tool) {
+        return {
+          finishReason: 'tool-calls' as const,
+          usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+          content: [
+            {
+              type: 'tool-call' as const,
+              toolCallId: `c${i}`,
+              toolName: step.tool.name,
+              input: JSON.stringify(step.tool.input)
+            }
+          ],
+          warnings: []
+        }
+      }
+      return {
+        finishReason: 'stop' as const,
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        content: [{ type: 'text' as const, text: step.text ?? '好了。' }],
+        warnings: []
+      }
+    }
+  })
+}
+
 describe('runAgent', () => {
   it('先调工具、再把结论用文字返回', async () => {
     // mock 模型：第 1 次返回工具调用，第 2 次返回文字结论
@@ -123,5 +172,40 @@ describe('runAgent', () => {
     expect(result.changes).toHaveLength(1)
     expect(result.changes[0]).toMatchObject({ riskLevel: 'reversible' })
     expect(result.changes[0].description).toMatch(/DNS/)
+  })
+
+  it('改动后复测通过：保留改动，rolledBack=false', async () => {
+    const { shell } = mkShell(0) // ping 通
+    const model = scripted([
+      { tool: { name: 'set_dns_servers', input: { service: 'Wi-Fi', servers: ['1.1.1.1'] } } },
+      { tool: { name: 'verify_connectivity', input: { host: '8.8.8.8' } } },
+      { text: '已修好。' }
+    ])
+    const result = await runAgent('网连不上', { model, shell })
+    expect(result.rolledBack).toBe(false)
+    expect(result.changes).toHaveLength(1)
+  })
+
+  it('改动后复测失败：自动回滚，rolledBack=true 且文案含还原', async () => {
+    const { shell, calls } = mkShell(2) // ping 不通
+    const model = scripted([
+      { tool: { name: 'set_dns_servers', input: { service: 'Wi-Fi', servers: ['1.1.1.1'] } } },
+      { tool: { name: 'verify_connectivity', input: { host: '8.8.8.8' } } },
+      { text: '试着改了 DNS。' }
+    ])
+    const result = await runAgent('网连不上', { model, shell })
+    expect(result.rolledBack).toBe(true)
+    expect(result.text).toMatch(/还原/)
+    expect(calls).toContain('networksetup -setdnsservers Wi-Fi Empty')
+  })
+
+  it('改动后没复测：安全默认也回滚，rolledBack=true', async () => {
+    const { shell } = mkShell(0)
+    const model = scripted([
+      { tool: { name: 'set_dns_servers', input: { service: 'Wi-Fi', servers: ['1.1.1.1'] } } },
+      { text: '改完了（但没复测）。' }
+    ])
+    const result = await runAgent('网连不上', { model, shell })
+    expect(result.rolledBack).toBe(true)
   })
 })
