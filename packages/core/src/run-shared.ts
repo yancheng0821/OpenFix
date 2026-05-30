@@ -1,4 +1,4 @@
-import { type LanguageModel, type ToolSet } from 'ai'
+import { generateText, type LanguageModel, type ToolSet, type ModelMessage } from 'ai'
 import { getModel } from './llm.js'
 import { runReadOnly, type ShellRunner } from './shell.js'
 import { ChangeLog, type ChangeSummary } from './safety/change-log.js'
@@ -14,8 +14,9 @@ import { systemSkillPack } from './skills/system-pack.js'
 import { createDiagnosticTools } from './tools/diagnostic.js'
 
 export const BASE_SYSTEM = `你是 OpenFix，帮普通人排查并修复电脑问题的助手。
-用 run_diagnostic 跑只读命令来排查（它只允许安全的只读命令）；确有必要时再用专门的"可逆/确认"修复工具——会自动记录、可一键还原。
-不要执行没把握的或不可逆的破坏性操作。最后用简短的大白话告诉用户你查到/改了什么。`
+用 run_diagnostic 跑**少量**关键的只读命令查清问题（通常 2~5 条就够，不要无止境地一直跑）；查清后**立刻**用简短的大白话给出结论和下一步建议。
+确有必要时再用专门的"可逆/确认"修复工具——会自动记录、可一键还原。
+不要执行没把握的或不可逆的破坏性操作。`
 
 export interface AgentResult {
   text: string
@@ -85,4 +86,29 @@ export async function finalizeRun(
     text = `${text}\n\n（修复没有通过复测，我已把改动全部还原，系统恢复原样。）`.trim()
   }
   return { text, changes: applied, rolledBack }
+}
+
+/**
+ * 兜底收口：若主循环跑完没有产出文字结论（常因模型一直在跑命令、用尽步数），
+ * 基于排查上下文再让模型补一段大白话结论（不带工具，保证一定有结论）。
+ */
+export async function concludeIfNeeded(
+  model: LanguageModel,
+  system: string,
+  priorMessages: ModelMessage[],
+  text: string
+): Promise<string> {
+  if (text.trim()) return text
+  const res = await generateText({
+    model,
+    system,
+    messages: [
+      ...priorMessages,
+      {
+        role: 'user',
+        content: '基于上面的排查结果，用简短的大白话给出结论和下一步建议；不要再调用任何工具。'
+      }
+    ]
+  })
+  return res.text
 }

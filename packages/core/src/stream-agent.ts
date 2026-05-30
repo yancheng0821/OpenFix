@@ -1,7 +1,8 @@
-import { streamText, stepCountIs } from 'ai'
+import { streamText, stepCountIs, type ModelMessage } from 'ai'
 import {
   assembleRun,
   finalizeRun,
+  concludeIfNeeded,
   type RunDeps,
   type AgentResult,
   type AgentEvent
@@ -27,7 +28,7 @@ export async function streamAgent(
     tools,
     system,
     ...(typeof input === 'string' ? { prompt: input } : { messages: input }),
-    stopWhen: stepCountIs(8)
+    stopWhen: stepCountIs(16)
   })
 
   let emittedChanges = 0
@@ -74,7 +75,20 @@ export async function streamAgent(
   const toolCalls = steps
     .flatMap((s) => s.toolCalls)
     .map((c) => ({ toolName: c.toolName, input: c.input }))
-  const finalText = await result.text
+  const streamedText = await result.text
+  const response = await result.response
+  const original: ModelMessage[] =
+    typeof input === 'string' ? [{ role: 'user', content: input }] : (input as ModelMessage[])
+  let finalText = streamedText
+  if (!streamedText.trim()) {
+    finalText = await concludeIfNeeded(
+      model,
+      system,
+      [...original, ...(response.messages as ModelMessage[])],
+      streamedText
+    )
+    if (finalText) onEvent({ type: 'text', delta: finalText })
+  }
   const fin = await finalizeRun(changeLog, verification, finalText)
   const agentResult: AgentResult = {
     text: fin.text,

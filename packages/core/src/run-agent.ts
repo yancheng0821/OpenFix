@@ -1,5 +1,11 @@
-import { generateText, stepCountIs } from 'ai'
-import { assembleRun, finalizeRun, type RunDeps, type AgentResult } from './run-shared.js'
+import { generateText, stepCountIs, type ModelMessage } from 'ai'
+import {
+  assembleRun,
+  finalizeRun,
+  concludeIfNeeded,
+  type RunDeps,
+  type AgentResult
+} from './run-shared.js'
 
 export type { AgentResult } from './run-shared.js'
 export type { RunDeps as RunAgentDeps } from './run-shared.js'
@@ -21,12 +27,20 @@ export async function runAgent(input: string | ChatMessage[], deps: RunDeps = {}
     tools,
     system,
     ...(typeof input === 'string' ? { prompt: input } : { messages: input }),
-    stopWhen: stepCountIs(8)
+    stopWhen: stepCountIs(16)
   })
 
   const toolCalls = result.steps
     .flatMap((s) => s.toolCalls)
     .map((c) => ({ toolName: c.toolName, input: c.input }))
-  const fin = await finalizeRun(changeLog, verification, result.text)
+  const original: ModelMessage[] =
+    typeof input === 'string' ? [{ role: 'user', content: input }] : (input as ModelMessage[])
+  const text = await concludeIfNeeded(
+    model,
+    system,
+    [...original, ...(result.response.messages as ModelMessage[])],
+    result.text
+  )
+  const fin = await finalizeRun(changeLog, verification, text)
   return { text: fin.text, toolCalls, changes: fin.changes, rolledBack: fin.rolledBack }
 }

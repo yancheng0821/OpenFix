@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { assembleRun, finalizeRun } from './run-shared'
+import { MockLanguageModelV2 } from 'ai/test'
+import { assembleRun, finalizeRun, concludeIfNeeded } from './run-shared'
 import { ChangeLog } from './safety/change-log'
 import { Verification } from './safety/verification'
 
@@ -44,5 +45,25 @@ describe('finalizeRun', () => {
     const r = await finalizeRun(changeLog, verification, '清了')
     expect(r.rolledBack).toBe(false)
     expect(r.changes).toHaveLength(1)
+  })
+})
+
+describe('concludeIfNeeded', () => {
+  it('已有文本：原样返回，不调模型', async () => {
+    const out = await concludeIfNeeded({} as never, 'sys', [], '已有结论')
+    expect(out).toBe('已有结论')
+  })
+
+  it('文本为空：用模型补一段结论', async () => {
+    const model = new MockLanguageModelV2({
+      doGenerate: async () => ({
+        finishReason: 'stop' as const,
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        content: [{ type: 'text' as const, text: '补的结论' }],
+        warnings: []
+      })
+    })
+    const out = await concludeIfNeeded(model, 'sys', [], '   ')
+    expect(out).toBe('补的结论')
   })
 })
