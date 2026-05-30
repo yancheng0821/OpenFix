@@ -15,9 +15,11 @@ export interface WriteToolSpec<S extends z.ZodTypeAny> {
   inputSchema: S
   riskLevel: RiskLevel
   describe: (input: z.infer<S>) => string
-  snapshot: (input: z.infer<S>, shell: ShellRunner) => Promise<unknown>
   apply: (input: z.infer<S>, shell: ShellRunner) => Promise<string>
-  rollback: (snapshot: unknown, input: z.infer<S>, shell: ShellRunner) => Promise<void>
+  /** 可逆写需提供：改前快照。不可逆写可省略。 */
+  snapshot?: (input: z.infer<S>, shell: ShellRunner) => Promise<unknown>
+  /** 可逆写需提供：用快照回滚。不可逆写可省略。 */
+  rollback?: (snapshot: unknown, input: z.infer<S>, shell: ShellRunner) => Promise<void>
 }
 
 /** 把一个写操作包成 AI SDK 工具：可逆自动执行+快照记账；不可逆需 confirm，否则拒绝。 */
@@ -33,13 +35,17 @@ export function createWriteTool<S extends z.ZodTypeAny>(
       if (spec.riskLevel === 'irreversible') {
         const ok = ctx.confirm ? await ctx.confirm(desc) : false
         if (!ok) return `已拒绝执行（不可逆操作需用户确认，未获授权）：${desc}`
+        const result = await spec.apply(input, ctx.shell)
+        // 不可逆：记录用于透明展示，但回滚是 no-op（撤不回）
+        ctx.changeLog.record({ description: desc, riskLevel: 'irreversible', rollback: async () => {} })
+        return result
       }
-      const snap = await spec.snapshot(input, ctx.shell)
+      const snap = spec.snapshot ? await spec.snapshot(input, ctx.shell) : undefined
       const result = await spec.apply(input, ctx.shell)
       ctx.changeLog.record({
         description: desc,
-        riskLevel: spec.riskLevel,
-        rollback: () => spec.rollback(snap, input, ctx.shell)
+        riskLevel: 'reversible',
+        rollback: () => (spec.rollback ? spec.rollback(snap, input, ctx.shell) : Promise.resolve())
       })
       return result
     }

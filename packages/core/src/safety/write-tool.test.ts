@@ -55,4 +55,17 @@ describe('createWriteTool', () => {
     await t.execute!({ value: 'X' }, okOptions)
     expect(ctx.changeLog.list()).toHaveLength(1)
   })
+
+  it('不可逆写：记账 riskLevel=irreversible 且其回滚为 no-op（不调用 spec.rollback）', async () => {
+    let specRollbackCalled = false
+    const ctx = makeCtx({ confirm: async () => true })
+    const t = createWriteTool(
+      { ...spec, riskLevel: 'irreversible', rollback: async () => void (specRollbackCalled = true) },
+      ctx
+    )
+    await t.execute!({ value: 'X' }, okOptions)
+    expect(ctx.changeLog.list()[0].riskLevel).toBe('irreversible')
+    await ctx.changeLog.rollbackAll()
+    expect(specRollbackCalled).toBe(false)
+  })
 })
