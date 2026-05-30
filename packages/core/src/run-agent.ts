@@ -1,11 +1,15 @@
 import { generateText, stepCountIs, type LanguageModel, type ToolSet } from 'ai'
 import { getModel } from './llm.js'
-import { runReadOnly } from './shell.js'
+import { runReadOnly, type ShellRunner } from './shell.js'
 import { createNetworkTools } from './tools/network.js'
+import { createNetworkFixTools } from './tools/network-fix.js'
+import { ChangeLog, type ChangeSummary } from './safety/change-log.js'
 
 export interface RunAgentDeps {
   model?: LanguageModel
   tools?: ToolSet
+  /** 注入 shell（测试用 mock，避免真实系统改动）；不传则用 runReadOnly。 */
+  shell?: ShellRunner
 }
 
 export interface ChatMessage {
@@ -16,11 +20,12 @@ export interface ChatMessage {
 export interface AgentResult {
   text: string
   toolCalls: Array<{ toolName: string; input: unknown }>
+  changes: ChangeSummary[]
 }
 
-const SYSTEM_PROMPT = `你是 OpenFix，帮普通人排查电脑网络问题的助手。
-目前只有"只读诊断"工具，不会改动任何系统配置。
-请先用工具查清实际情况，再用简短的大白话把结论告诉用户。不要假装执行了修复。`
+const SYSTEM_PROMPT = `你是 OpenFix，帮普通人排查并修复电脑网络问题的助手。
+先用只读工具查清情况；确有必要时可调用"可逆"修复工具（如改 DNS）——这类改动会自动记录、可一键还原。
+不要执行没把握的或不可逆的破坏性操作。最后用简短的大白话告诉用户你查到/改了什么。`
 
 /**
  * 薄 agent loop：默认用 env 模型 + 内置网络工具；测试可注入 model/tools。
@@ -31,7 +36,13 @@ export async function runAgent(
   deps: RunAgentDeps = {}
 ): Promise<AgentResult> {
   const model = deps.model ?? getModel()
-  const tools = deps.tools ?? createNetworkTools(runReadOnly)
+  const shell = deps.shell ?? runReadOnly
+  const changeLog = new ChangeLog()
+  const tools =
+    deps.tools ?? {
+      ...createNetworkTools(shell),
+      ...createNetworkFixTools({ shell, changeLog })
+    }
 
   const result = await generateText({
     model,
@@ -46,6 +57,7 @@ export async function runAgent(
 
   return {
     text: result.text,
-    toolCalls: allToolCalls.map((c) => ({ toolName: c.toolName, input: c.input }))
+    toolCalls: allToolCalls.map((c) => ({ toolName: c.toolName, input: c.input })),
+    changes: changeLog.list()
   }
 }

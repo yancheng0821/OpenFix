@@ -84,4 +84,44 @@ describe('runAgent', () => {
     expect(captured.filter((m) => m.role === 'user')).toHaveLength(2)
     expect(captured.filter((m) => m.role === 'assistant')).toHaveLength(1)
   })
+
+  it('调用写工具后，结果的 changes 记录该改动', async () => {
+    let call = 0
+    const model = new MockLanguageModelV2({
+      doGenerate: async () => {
+        call += 1
+        if (call === 1) {
+          return {
+            finishReason: 'tool-calls' as const,
+            usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+            content: [
+              {
+                type: 'tool-call' as const,
+                toolCallId: 'c1',
+                toolName: 'set_dns_servers',
+                input: JSON.stringify({ service: 'Wi-Fi', servers: ['1.1.1.1'] })
+              }
+            ],
+            warnings: []
+          }
+        }
+        return {
+          finishReason: 'stop' as const,
+          usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+          content: [{ type: 'text' as const, text: '已把 DNS 改好。' }],
+          warnings: []
+        }
+      }
+    })
+
+    // 不注入 tools → 用默认工具集（含 set_dns_servers），但注入 mock shell 避免真实改动
+    const result = await runAgent('帮我把 DNS 改成 1.1.1.1', {
+      model,
+      shell: async () => ({ code: 0, stdout: '', stderr: '' })
+    })
+
+    expect(result.changes).toHaveLength(1)
+    expect(result.changes[0]).toMatchObject({ riskLevel: 'reversible' })
+    expect(result.changes[0].description).toMatch(/DNS/)
+  })
 })
