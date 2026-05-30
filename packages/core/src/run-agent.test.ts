@@ -245,19 +245,18 @@ describe('runAgent', () => {
     expect(result.toolCalls.map((c) => c.toolName)).toContain('demo_tool')
   })
 
-  it('默认包含软件/系统包：check_disk_space 真被执行（调到 df）', async () => {
-    const df = 'Filesystem Size Used Avail Capacity Mounted\n/dev/disk3 926Gi 10Gi 300Gi 4% /'
+  it('默认含通用 run_diagnostic：可跑只读命令（调到 df）', async () => {
     const calls: string[] = []
     const shell = async (cmd: string) => {
       calls.push(cmd)
-      return { code: 0, stdout: cmd === 'df' ? df : '', stderr: '' }
+      return { code: 0, stdout: '', stderr: '' }
     }
     const model = scripted([
-      { tool: { name: 'check_disk_space', input: {} } },
-      { text: '磁盘还够用。' }
+      { tool: { name: 'run_diagnostic', input: { command: 'df', args: ['-h', '/'] } } },
+      { text: '看了下磁盘。' }
     ])
     await runAgent('电脑有点卡', { model, shell })
-    // 只有 check_disk_space 真被注册并执行，才会调用 df
+    // run_diagnostic 在默认工具里、且白名单放行 df → 真调用 df
     expect(calls).toContain('df')
   })
 

@@ -9,6 +9,7 @@ describe('assembleRun', () => {
       model: {} as never,
       shell: async () => ({ code: 0, stdout: '', stderr: '' })
     })
+    expect(Object.keys(a.tools)).toContain('run_diagnostic')
     expect(Object.keys(a.tools)).toContain('set_dns_servers')
     expect(Object.keys(a.tools)).toContain('empty_trash')
     expect(a.system).toMatch(/OpenFix/)

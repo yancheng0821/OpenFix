@@ -11,9 +11,10 @@ import {
 } from './skills/skill-pack.js'
 import { networkSkillPack } from './skills/network-pack.js'
 import { systemSkillPack } from './skills/system-pack.js'
+import { createDiagnosticTools } from './tools/diagnostic.js'
 
 export const BASE_SYSTEM = `你是 OpenFix，帮普通人排查并修复电脑问题的助手。
-先用只读工具查清情况；确有必要时可调用"可逆"修复工具——会自动记录、可一键还原。
+用 run_diagnostic 跑只读命令来排查（它只允许安全的只读命令）；确有必要时再用专门的"可逆/确认"修复工具——会自动记录、可一键还原。
 不要执行没把握的或不可逆的破坏性操作。最后用简短的大白话告诉用户你查到/改了什么。`
 
 export interface AgentResult {
@@ -58,7 +59,8 @@ export function assembleRun(deps: RunDeps): Assembled {
   const verification = new Verification()
   const skillContext: SkillContext = { shell, changeLog, verification, confirm: deps.confirm }
   const packs = deps.skillPacks ?? [networkSkillPack, systemSkillPack]
-  const tools = deps.tools ?? composeTools(packs, skillContext)
+  const tools =
+    deps.tools ?? { ...createDiagnosticTools(shell), ...composeTools(packs, skillContext) }
   const system = deps.tools
     ? BASE_SYSTEM
     : [BASE_SYSTEM, composeSystemPrompts(packs)].filter(Boolean).join('\n\n')
