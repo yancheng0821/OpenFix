@@ -244,4 +244,20 @@ describe('runAgent', () => {
     expect(executed).toEqual(['x'])
     expect(result.toolCalls.map((c) => c.toolName)).toContain('demo_tool')
   })
+
+  it('默认包含软件/系统包：check_disk_space 真被执行（调到 df）', async () => {
+    const df = 'Filesystem Size Used Avail Capacity Mounted\n/dev/disk3 926Gi 10Gi 300Gi 4% /'
+    const calls: string[] = []
+    const shell = async (cmd: string) => {
+      calls.push(cmd)
+      return { code: 0, stdout: cmd === 'df' ? df : '', stderr: '' }
+    }
+    const model = scripted([
+      { tool: { name: 'check_disk_space', input: {} } },
+      { text: '磁盘还够用。' }
+    ])
+    await runAgent('电脑有点卡', { model, shell })
+    // 只有 check_disk_space 真被注册并执行，才会调用 df
+    expect(calls).toContain('df')
+  })
 })

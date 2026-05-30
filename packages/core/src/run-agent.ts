@@ -10,6 +10,7 @@ import {
   type SkillContext
 } from './skills/skill-pack.js'
 import { networkSkillPack } from './skills/network-pack.js'
+import { systemSkillPack } from './skills/system-pack.js'
 
 export interface RunAgentDeps {
   model?: LanguageModel
@@ -51,7 +52,7 @@ export async function runAgent(
   const changeLog = deps.changeLog ?? new ChangeLog()
   const verification = new Verification()
   const skillContext: SkillContext = { shell, changeLog, verification }
-  const packs = deps.skillPacks ?? [networkSkillPack]
+  const packs = deps.skillPacks ?? [networkSkillPack, systemSkillPack]
   const tools = deps.tools ?? composeTools(packs, skillContext)
   const system = deps.tools
     ? BASE_SYSTEM
