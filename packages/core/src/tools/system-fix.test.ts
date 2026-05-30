@@ -1,0 +1,37 @@
+import { describe, it, expect } from 'vitest'
+import { ChangeLog } from '../safety/change-log'
+import { createSystemFixTools } from './system-fix'
+
+const okOptions = { toolCallId: 't1', messages: [] } as never
+
+describe('empty_trash', () => {
+  it('已授权：调 Finder 清空并记一条不可逆改动', async () => {
+    const calls: string[] = []
+    const shell = async (cmd: string, args: string[]) => {
+      calls.push([cmd, ...args].join(' '))
+      return { code: 0, stdout: '', stderr: '' }
+    }
+    const changeLog = new ChangeLog()
+    const tools = createSystemFixTools({ shell, changeLog, confirm: async () => true })
+    const out = (await tools.empty_trash.execute!({}, okOptions)) as string
+    expect(out).toMatch(/废纸篓/)
+    expect(calls.some((c) => c.includes('Finder') && c.includes('empty trash'))).toBe(true)
+    expect(changeLog.list()).toEqual([
+      { id: 1, description: expect.stringMatching(/废纸篓/), riskLevel: 'irreversible' }
+    ])
+  })
+
+  it('未授权（confirm 缺省）：拒绝，不调 shell、不记账', async () => {
+    const calls: string[] = []
+    const shell = async (cmd: string, args: string[]) => {
+      calls.push([cmd, ...args].join(' '))
+      return { code: 0, stdout: '', stderr: '' }
+    }
+    const changeLog = new ChangeLog()
+    const tools = createSystemFixTools({ shell, changeLog })
+    const out = (await tools.empty_trash.execute!({}, okOptions)) as string
+    expect(out).toMatch(/拒绝|未获授权/)
+    expect(calls).toEqual([])
+    expect(changeLog.list()).toEqual([])
+  })
+})

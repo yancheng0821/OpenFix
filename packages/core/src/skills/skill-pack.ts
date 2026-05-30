@@ -8,6 +8,7 @@ export interface SkillContext {
   shell: ShellRunner
   changeLog: ChangeLog
   verification: Verification
+  confirm?: (description: string) => Promise<boolean>
 }
 
 /** 一个诊断/修复技能包：贡献工具 + 一段（可选）系统提示指导。 */

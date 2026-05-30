@@ -10,6 +10,10 @@ describe('systemSkillPack', () => {
       changeLog: new ChangeLog(),
       verification: new Verification()
     })
-    expect(Object.keys(tools).sort()).toEqual(['check_app_installed', 'check_disk_space'])
+    expect(Object.keys(tools).sort()).toEqual([
+      'check_app_installed',
+      'check_disk_space',
+      'empty_trash'
+    ])
   })
 })
