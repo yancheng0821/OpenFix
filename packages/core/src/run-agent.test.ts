@@ -4,6 +4,7 @@ import { tool, type ToolSet } from 'ai'
 import { z } from 'zod'
 import { runAgent } from './run-agent'
 import { ChangeLog } from './safety/change-log'
+import type { SkillPack } from './skills/skill-pack'
 
 // —— 2b 辅助：可配置 ping 退出码的 mock shell（networksetup 恒成功）——
 function mkShell(pingCode: number): {
@@ -221,5 +222,26 @@ describe('runAgent', () => {
     const result = await runAgent('网连不上', { model, shell, changeLog })
     expect(result.rolledBack).toBe(false)
     expect(changeLog.list()).toHaveLength(1) // 改动留在外部注入的账本
+  })
+
+  it('可注入 skillPacks：用包贡献的工具替代默认网络包', async () => {
+    const executed: string[] = []
+    const customPack: SkillPack = {
+      name: 'demo',
+      createTools: () => ({
+        demo_tool: tool({
+          description: 'demo',
+          inputSchema: z.object({}),
+          execute: async () => {
+            executed.push('x')
+            return 'done'
+          }
+        })
+      })
+    }
+    const model = scripted([{ tool: { name: 'demo_tool', input: {} } }, { text: '完成' }])
+    const result = await runAgent('做点什么', { model, skillPacks: [customPack] })
+    expect(executed).toEqual(['x'])
+    expect(result.toolCalls.map((c) => c.toolName)).toContain('demo_tool')
   })
 })

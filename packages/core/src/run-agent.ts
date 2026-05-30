@@ -1,11 +1,15 @@
 import { generateText, stepCountIs, type LanguageModel, type ToolSet } from 'ai'
 import { getModel } from './llm.js'
 import { runReadOnly, type ShellRunner } from './shell.js'
-import { createNetworkTools } from './tools/network.js'
-import { createNetworkFixTools } from './tools/network-fix.js'
 import { ChangeLog, type ChangeSummary } from './safety/change-log.js'
 import { Verification } from './safety/verification.js'
-import { createNetworkVerifyTools } from './tools/network-verify.js'
+import {
+  composeTools,
+  composeSystemPrompts,
+  type SkillPack,
+  type SkillContext
+} from './skills/skill-pack.js'
+import { networkSkillPack } from './skills/network-pack.js'
 
 export interface RunAgentDeps {
   model?: LanguageModel
@@ -14,6 +18,8 @@ export interface RunAgentDeps {
   shell?: ShellRunner
   /** 注入 ChangeLog（main 进程持有，供运行结束后用户"一键还原"）；不传则内部新建。 */
   changeLog?: ChangeLog
+  /** 注入技能包（每包贡献工具+系统提示）；不传则用默认 [networkSkillPack]。 */
+  skillPacks?: SkillPack[]
 }
 
 export interface ChatMessage {
@@ -28,9 +34,8 @@ export interface AgentResult {
   rolledBack: boolean
 }
 
-const SYSTEM_PROMPT = `你是 OpenFix，帮普通人排查并修复电脑网络问题的助手。
-先用只读工具查清情况；确有必要时可调用"可逆"修复工具（如改 DNS）——这类改动会自动记录、可一键还原。
-执行任何修复后，必须调用 verify_connectivity 复测，只有复测通过才算修好。
+const BASE_SYSTEM = `你是 OpenFix，帮普通人排查并修复电脑问题的助手。
+先用只读工具查清情况；确有必要时可调用"可逆"修复工具——会自动记录、可一键还原。
 不要执行没把握的或不可逆的破坏性操作。最后用简短的大白话告诉用户你查到/改了什么。`
 
 /**
@@ -45,17 +50,17 @@ export async function runAgent(
   const shell = deps.shell ?? runReadOnly
   const changeLog = deps.changeLog ?? new ChangeLog()
   const verification = new Verification()
-  const tools =
-    deps.tools ?? {
-      ...createNetworkTools(shell),
-      ...createNetworkFixTools({ shell, changeLog }),
-      ...createNetworkVerifyTools(shell, verification)
-    }
+  const skillContext: SkillContext = { shell, changeLog, verification }
+  const packs = deps.skillPacks ?? [networkSkillPack]
+  const tools = deps.tools ?? composeTools(packs, skillContext)
+  const system = deps.tools
+    ? BASE_SYSTEM
+    : [BASE_SYSTEM, composeSystemPrompts(packs)].filter(Boolean).join('\n\n')
 
   const result = await generateText({
     model,
     tools,
-    system: SYSTEM_PROMPT,
+    system,
     ...(typeof input === 'string' ? { prompt: input } : { messages: input }),
     stopWhen: stepCountIs(8)
   })
