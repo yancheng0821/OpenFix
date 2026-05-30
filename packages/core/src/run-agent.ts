@@ -8,6 +8,11 @@ export interface RunAgentDeps {
   tools?: ToolSet
 }
 
+export interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
 export interface AgentResult {
   text: string
   toolCalls: Array<{ toolName: string; input: unknown }>
@@ -17,8 +22,14 @@ const SYSTEM_PROMPT = `你是 OpenFix，帮普通人排查电脑网络问题的�
 目前只有"只读诊断"工具，不会改动任何系统配置。
 请先用工具查清实际情况，再用简短的大白话把结论告诉用户。不要假装执行了修复。`
 
-/** 薄 agent loop：默认用 env 模型 + 内置网络工具；测试可注入 model/tools。 */
-export async function runAgent(userText: string, deps: RunAgentDeps = {}): Promise<AgentResult> {
+/**
+ * 薄 agent loop：默认用 env 模型 + 内置网络工具；测试可注入 model/tools。
+ * input 传字符串=单轮；传 ChatMessage[]=带上下文的多轮对话。
+ */
+export async function runAgent(
+  input: string | ChatMessage[],
+  deps: RunAgentDeps = {}
+): Promise<AgentResult> {
   const model = deps.model ?? getModel()
   const tools = deps.tools ?? createNetworkTools(runReadOnly)
 
@@ -26,7 +37,7 @@ export async function runAgent(userText: string, deps: RunAgentDeps = {}): Promi
     model,
     tools,
     system: SYSTEM_PROMPT,
-    prompt: userText,
+    ...(typeof input === 'string' ? { prompt: input } : { messages: input }),
     stopWhen: stepCountIs(5)
   })
 

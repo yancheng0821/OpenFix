@@ -55,4 +55,33 @@ describe('runAgent', () => {
     ])
     expect(result.text).toContain('8.8.8.8')
   })
+
+  it('接受对话历史（messages 数组）：三轮上下文都作为独立 messages 传给模型', async () => {
+    let captured: Array<{ role: string }> = []
+    const model = new MockLanguageModelV2({
+      doGenerate: async (options) => {
+        captured = options.prompt as Array<{ role: string }>
+        return {
+          finishReason: 'stop' as const,
+          usage: { inputTokens: 5, outputTokens: 5, totalTokens: 10 },
+          content: [{ type: 'text' as const, text: '好的，我再帮你看一下。' }],
+          warnings: []
+        }
+      }
+    })
+
+    const result = await runAgent(
+      [
+        { role: 'user', content: '我连不上网' },
+        { role: 'assistant', content: '你和 8.8.8.8 是通的。' },
+        { role: 'user', content: '那再测一次' }
+      ],
+      { model, tools: {} }
+    )
+
+    expect(result.text).toBe('好的，我再帮你看一下。')
+    // 三轮对话都应作为 messages 传入：2 条 user + 1 条 assistant
+    expect(captured.filter((m) => m.role === 'user')).toHaveLength(2)
+    expect(captured.filter((m) => m.role === 'assistant')).toHaveLength(1)
+  })
 })
