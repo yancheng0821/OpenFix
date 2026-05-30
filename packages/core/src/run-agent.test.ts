@@ -260,4 +260,32 @@ describe('runAgent', () => {
     // 只有 check_disk_space 真被注册并执行，才会调用 df
     expect(calls).toContain('df')
   })
+
+  it('confirm 通过：不可逆工具执行、记一条 irreversible，且不被自动回滚', async () => {
+    const calls: string[] = []
+    const shell = async (cmd: string) => {
+      calls.push(cmd)
+      return { code: 0, stdout: '', stderr: '' }
+    }
+    const model = scripted([{ tool: { name: 'empty_trash', input: {} } }, { text: '已清空。' }])
+    const result = await runAgent('帮我清下废纸篓', { model, shell, confirm: async () => true })
+    expect(calls).toContain('osascript')
+    expect(result.changes).toEqual([
+      { id: 1, description: expect.stringMatching(/废纸篓/), riskLevel: 'irreversible' }
+    ])
+    expect(result.rolledBack).toBe(false)
+  })
+
+  it('confirm 缺省：不可逆工具被拒绝，不执行、无改动', async () => {
+    const calls: string[] = []
+    const shell = async (cmd: string) => {
+      calls.push(cmd)
+      return { code: 0, stdout: '', stderr: '' }
+    }
+    const model = scripted([{ tool: { name: 'empty_trash', input: {} } }, { text: '没清。' }])
+    const result = await runAgent('帮我清下废纸篓', { model, shell })
+    expect(calls).not.toContain('osascript')
+    expect(result.changes).toEqual([])
+    expect(result.rolledBack).toBe(false)
+  })
 })

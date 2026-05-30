@@ -21,6 +21,8 @@ export interface RunAgentDeps {
   changeLog?: ChangeLog
   /** 注入技能包（每包贡献工具+系统提示）；不传则用默认 [networkSkillPack]。 */
   skillPacks?: SkillPack[]
+  /** 不可逆操作的确认回调；不传则不可逆工具一律拒绝。 */
+  confirm?: (description: string) => Promise<boolean>
 }
 
 export interface ChatMessage {
@@ -51,7 +53,7 @@ export async function runAgent(
   const shell = deps.shell ?? runReadOnly
   const changeLog = deps.changeLog ?? new ChangeLog()
   const verification = new Verification()
-  const skillContext: SkillContext = { shell, changeLog, verification }
+  const skillContext: SkillContext = { shell, changeLog, verification, confirm: deps.confirm }
   const packs = deps.skillPacks ?? [networkSkillPack, systemSkillPack]
   const tools = deps.tools ?? composeTools(packs, skillContext)
   const system = deps.tools
@@ -70,10 +72,12 @@ export async function runAgent(
   const allToolCalls = result.steps.flatMap((s) => s.toolCalls)
   const applied = changeLog.list()
 
-  // 收尾安全策略：有改动但复测没通过（或没复测）→ 自动全部还原
+  // 收尾安全策略：有"可逆"改动但复测没通过（或没复测）→ 自动还原可逆项
+  // 不可逆改动（用户已确认）不参与自动回滚。
+  const reversibleApplied = applied.filter((c) => c.riskLevel === 'reversible')
   let rolledBack = false
-  if (applied.length > 0 && verification.passed !== true) {
-    await changeLog.rollbackAll()
+  if (reversibleApplied.length > 0 && verification.passed !== true) {
+    await changeLog.rollbackReversible()
     rolledBack = true
   }
 
