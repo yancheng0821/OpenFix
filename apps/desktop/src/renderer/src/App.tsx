@@ -1,34 +1,38 @@
-import Versions from './components/Versions'
-import electronLogo from './assets/electron.svg'
+import { useState } from 'react'
 
 function App(): React.JSX.Element {
-  const ipcHandle = (): void => window.electron.ipcRenderer.send('ping')
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState('')
+
+  async function handleSubmit(): Promise<void> {
+    if (!input.trim() || loading) return
+    setLoading(true)
+    setResult('')
+    try {
+      const res = await window.api.runAgent(input)
+      setResult(res.text)
+    } catch (e) {
+      setResult(`出错了：${(e as Error).message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
-    <>
-      <img alt="logo" className="logo" src={electronLogo} />
-      <div className="creator">Powered by electron-vite</div>
-      <div className="text">
-        Build an Electron app with <span className="react">React</span>
-        &nbsp;and <span className="ts">TypeScript</span>
-      </div>
-      <p className="tip">
-        Please try pressing <code>F12</code> to open the devTool
-      </p>
-      <div className="actions">
-        <div className="action">
-          <a href="https://electron-vite.org/" target="_blank" rel="noreferrer">
-            Documentation
-          </a>
-        </div>
-        <div className="action">
-          <a target="_blank" rel="noreferrer" onClick={ipcHandle}>
-            Send IPC
-          </a>
-        </div>
-      </div>
-      <Versions></Versions>
-    </>
+    <div className="container">
+      <h1>OpenFix</h1>
+      <textarea
+        aria-label="问题描述"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        placeholder="说说你的问题，比如：我连不上网"
+      />
+      <button onClick={handleSubmit} disabled={loading}>
+        {loading ? '排查中…' : '开始排查'}
+      </button>
+      {result && <pre aria-label="结果">{result}</pre>}
+    </div>
   )
 }
 
