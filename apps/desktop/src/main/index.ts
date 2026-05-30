@@ -1,7 +1,7 @@
 import 'dotenv/config'
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
-import { runAgent } from '@openfix/core'
+import { runAgent, ChangeLog } from '@openfix/core'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
@@ -54,13 +54,27 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
-  // OpenFix：渲染层把对话历史交给引擎，返回新一轮排查结论
+  // OpenFix：main 进程持有"最近一次运行"的还原句柄（rollback 是闭包，不能跨 IPC 序列化）
+  let currentRollback: (() => Promise<void>) | null = null
+
   ipcMain.handle(
     'agent:run',
     async (_event, messages: { role: 'user' | 'assistant'; content: string }[]) => {
-      return runAgent(messages)
+      const changeLog = new ChangeLog()
+      const result = await runAgent(messages, { changeLog })
+      // 成功且有改动 → 留还原句柄；失败(已自动还原)或无改动 → 清空
+      currentRollback =
+        !result.rolledBack && result.changes.length > 0 ? () => changeLog.rollbackAll() : null
+      return result
     }
   )
+
+  ipcMain.handle('agent:rollback', async () => {
+    if (!currentRollback) return { ok: false }
+    await currentRollback()
+    currentRollback = null
+    return { ok: true }
+  })
 
   createWindow()
 

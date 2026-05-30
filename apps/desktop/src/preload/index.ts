@@ -5,8 +5,13 @@ import { electronAPI } from '@electron-toolkit/preload'
 const api = {
   runAgent: (
     messages: { role: 'user' | 'assistant'; content: string }[]
-  ): Promise<{ text: string; toolCalls: { toolName: string; input: unknown }[] }> =>
-    ipcRenderer.invoke('agent:run', messages)
+  ): Promise<{
+    text: string
+    toolCalls: { toolName: string; input: unknown }[]
+    changes: { id: number; description: string; riskLevel: 'reversible' | 'irreversible' }[]
+    rolledBack: boolean
+  }> => ipcRenderer.invoke('agent:run', messages),
+  rollback: (): Promise<{ ok: boolean }> => ipcRenderer.invoke('agent:rollback')
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
