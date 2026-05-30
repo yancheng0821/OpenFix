@@ -1,0 +1,23 @@
+{
+  "name": "@openfix/core",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "ai": "^5.0.0",
+    "@ai-sdk/openai-compatible": "^1.0.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}
