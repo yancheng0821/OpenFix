@@ -1,0 +1,16 @@
+{
+  "name": "openfix",
+  "private": true,
+  "version": "0.0.0",
+  "packageManager": "pnpm@10.32.1",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "build:core": "pnpm --filter @openfix/core build",
+    "dev": "pnpm --filter @openfix/desktop dev"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  }
+}
