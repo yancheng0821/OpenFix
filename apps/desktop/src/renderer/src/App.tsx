@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import logo from './assets/logo.png'
 import { useAgentRun } from './hooks/useAgentRun'
 import { toolLabel, formatDetail } from './lib/toolLabels'
@@ -69,7 +71,13 @@ function App(): React.JSX.Element {
 
         {messages.map((m, i) => (
           <div key={i} className={`msg msg--${m.role}`}>
-            <div className="msg__bubble">{m.content}</div>
+            <div className="msg__bubble">
+              {m.role === 'assistant' ? (
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
+              ) : (
+                m.content
+              )}
+            </div>
           </div>
         ))}
 
