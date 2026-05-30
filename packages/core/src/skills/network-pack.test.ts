@@ -12,6 +12,9 @@ describe('networkSkillPack', () => {
     })
     expect(Object.keys(tools).sort()).toEqual([
       'check_connectivity',
+      'check_proxy',
+      'get_wifi_info',
+      'resolve_dns',
       'set_dns_servers',
       'verify_connectivity'
     ])
