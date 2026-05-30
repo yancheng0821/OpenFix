@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
+import logo from './assets/logo.png'
 import { useAgentRun } from './hooks/useAgentRun'
 import { toolLabel } from './lib/toolLabels'
 
@@ -41,16 +42,16 @@ function App(): React.JSX.Element {
   return (
     <div className="app">
       <header className="titlebar">
-        <span className="titlebar__logo" aria-hidden />
+        <img className="titlebar__logo" src={logo} alt="" aria-hidden />
         <span className="titlebar__name">OpenFix</span>
       </header>
 
       <div className="log" ref={logRef} aria-label="对话">
         {empty && (
           <div className="empty">
-            <div className="empty__mark" aria-hidden />
-            <h2 className="empty__title">电脑哪儿不舒服？</h2>
-            <p className="empty__sub">说一句话，我来查、来修，全程可一键还原。</p>
+            <img className="empty__mark" src={logo} alt="" aria-hidden />
+            <h2 className="empty__title">有什么可以帮你的？</h2>
+            <p className="empty__sub">电脑、网络上的事，说一句话我来搞定，全程可一键还原。</p>
             <div className="empty__chips">
               {EXAMPLES.map((ex) => (
                 <button key={ex} className="chip" onClick={() => setInput(ex)}>

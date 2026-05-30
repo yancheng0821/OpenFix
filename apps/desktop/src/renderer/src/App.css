@@ -71,13 +71,10 @@ body {
   user-select: none;
 }
 
-.titlebar__logo,
-.empty__mark {
-  width: 18px;
-  height: 18px;
-  border-radius: 5px;
-  background: linear-gradient(135deg, #0a84ff, #4ca7ff);
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4);
+.titlebar__logo {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
 }
 
 .log {
@@ -95,9 +92,10 @@ body {
   max-width: 360px;
 }
 .empty__mark {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+  display: block;
   margin: 0 auto 14px;
 }
 .empty__title {
