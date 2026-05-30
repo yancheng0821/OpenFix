@@ -82,6 +82,22 @@ Marvis 2026-05-20 上线，1 主 +5 副多智能体、零配置、端云双模�
 - **引擎 = Vercel AI SDK（模型无关 provider 层）+ 自写薄 agent loop + 工具/安全/快照/验证**
 - 不用 Claude Agent SDK：它是 Anthropic-only，与"普通人要能换自己的模型"冲突
 
+### 工程结构（pnpm monorepo，参考 MoonshotAI/kimi-code）
+参考开源项目 **MoonshotAI/kimi-code**（MIT、TS 编程 agent，library-first：`agent-core` 引擎与 TUI 壳分离）的设计，采用同构的 monorepo：
+
+```
+openfix/
+├── apps/
+│   └── desktop/          Electron + React GUI（壳）
+├── packages/
+│   ├── core/             引擎：agent loop · 工具系统 · 安全 hooks · 快照/回滚 · 验证器 · LLM provider
+│   └── skill-network/    网络诊断包(A)：症状·诊断知识·网络工具·复测
+└── docs/
+```
+- **安全 = hooks-gating**：借鉴 kimi-code"在关键点 gate 风险工具调用"的 hook 模式——写操作工具调用前由安全 hook 拦截、判级、快照
+- **技能包 = plugin 式**：每个包是一个 package，向 core 注册 {症状·诊断知识·工具·复测}
+- 但 loop / 安全 / 快照 / 复测**自己写**（不依赖 kimi-code 的 agent-core），因为安全是命门、要 100% 自控
+
 ### 关键技术决策与理由
 - **TS 而非 Python**：GUI 是 React(=JS/TS)，桌面 App 用 Electron（main 进程本就是 Node），引擎用 TS 即可同栈单运行时、无 sidecar；而且要打包成签名公证的消费品时，Python sidecar 需对每个内嵌二进制签名公证、体积暴涨，Node 引擎签名范围收敛。Python 只在需要其独占 ML 库或独立 CLI 时才更优——本项目两者都不需要。
 - **内核 + 可插拔技能包**：A、B 共用同一内核，差异只在"诊断知识 + 专属工具"；顺手实现可扩展（以后加"打印机包"等都是同一机制）。实现顺序 A→B。
@@ -188,3 +204,4 @@ Marvis 2026-05-20 上线，1 主 +5 副多智能体、零配置、端云双模�
 7. 架构：内核 + 可插拔技能包，实现顺序 A(网络)→B(软件/系统)
 8. 交互/安全：全自动不打扰，安全靠"可回滚 + 自动验证 + 失败自动还原"，只读自动·可逆写自动快照·不可逆才硬确认
 9. 名称：OpenFix（与 OpenClaw 同系，open + fix 直白说出"修好它"）
+10. 框架：参考 MoonshotAI/kimi-code（MIT/TS/library-first）的设计——monorepo 分层、hooks-gating 安全、plugin 技能包、provider 无关；但引擎自写、不依赖其 agent-core（安全是命门要自控）。选 A（自建薄引擎 + kimi-code 当设计北极星），否决 B（建在 agent-core 上）与 C（fork）。
