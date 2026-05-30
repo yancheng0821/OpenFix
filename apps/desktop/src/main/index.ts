@@ -1,5 +1,7 @@
+import 'dotenv/config'
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
+import { runAgent } from '@openfix/core'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
@@ -51,6 +53,11 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
+
+  // OpenFix：渲染层把用户一句话交给引擎，返回排查结论
+  ipcMain.handle('agent:run', async (_event, userText: string) => {
+    return runAgent(userText)
+  })
 
   createWindow()
 
