@@ -1,84 +1,100 @@
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
+import { useAgentRun } from './hooks/useAgentRun'
+import { toolLabel } from './lib/toolLabels'
 
-interface ChatMessage {
-  role: 'user' | 'assistant'
-  content: string
-}
-
-interface ChangeSummary {
-  id: number
-  description: string
-  riskLevel: 'reversible' | 'irreversible'
+const EXAMPLES = ['我连不上网', 'GitHub 打不开', '网速很慢', '电脑好卡']
+const PHASE_LABEL: Record<string, string> = {
+  investigating: '正在排查',
+  fixing: '正在修复',
+  verifying: '正在复测',
+  idle: '正在排查'
 }
 
 function App(): React.JSX.Element {
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const { messages, run, running, changes, reverted, send, rollback } = useAgentRun()
   const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [changes, setChanges] = useState<ChangeSummary[]>([])
-  const [reverted, setReverted] = useState(false)
   const logRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const el = logRef.current
     if (el) el.scrollTop = el.scrollHeight
-  }, [messages, loading])
+  }, [messages, run, running])
 
-  async function handleSubmit(): Promise<void> {
-    const text = input.trim()
-    if (!text || loading) return
-    const history: ChatMessage[] = [...messages, { role: 'user', content: text }]
-    setMessages(history)
+  function submit(): void {
+    const t = input.trim()
+    if (!t || running) return
     setInput('')
-    setLoading(true)
-    setChanges([])
-    setReverted(false)
-    try {
-      const res = await window.api.runAgent(history)
-      setMessages((prev) => [...prev, { role: 'assistant', content: res.text }])
-      if (!res.rolledBack && res.changes.length > 0) setChanges(res.changes)
-    } catch (e) {
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: `出错了：${(e as Error).message}` }
-      ])
-    } finally {
-      setLoading(false)
-    }
+    void send(t)
   }
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>): void {
+  function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>): void {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      void handleSubmit()
+      submit()
     }
   }
 
-  async function handleRollback(): Promise<void> {
-    const res = await window.api.rollback()
-    if (res.ok) {
-      setReverted(true)
-      setChanges([])
-    }
-  }
+  const empty = messages.length === 0 && !running
+  const currentStep = run.steps.length > 0 ? toolLabel(run.steps[run.steps.length - 1]).label : ''
 
   return (
-    <div className="chat">
-      <header className="chat__header">OpenFix</header>
+    <div className="app">
+      <header className="titlebar">
+        <span className="titlebar__logo" aria-hidden />
+        <span className="titlebar__name">OpenFix</span>
+      </header>
 
-      <div className="chat__log" ref={logRef} aria-label="对话">
-        {messages.length === 0 && (
-          <p className="chat__empty">说说你的电脑/网络问题，比如：我连不上网</p>
+      <div className="log" ref={logRef} aria-label="对话">
+        {empty && (
+          <div className="empty">
+            <div className="empty__mark" aria-hidden />
+            <h2 className="empty__title">电脑哪儿不舒服？</h2>
+            <p className="empty__sub">说一句话，我来查、来修，全程可一键还原。</p>
+            <div className="empty__chips">
+              {EXAMPLES.map((ex) => (
+                <button key={ex} className="chip" onClick={() => setInput(ex)}>
+                  {ex}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
+
         {messages.map((m, i) => (
           <div key={i} className={`msg msg--${m.role}`}>
-            <pre className="msg__content">{m.content}</pre>
+            <div className="msg__bubble">{m.content}</div>
           </div>
         ))}
-        {loading && (
-          <div className="msg msg--assistant">
-            <span className="msg__typing">排查中…</span>
+
+        {running && (
+          <div className="activity" aria-label="排查进度">
+            <div className="activity__pill">
+              <span className="pulse" aria-hidden />
+              {PHASE_LABEL[run.phase] ?? '正在排查'}
+              {currentStep && <span className="activity__cur"> · {currentStep}</span>}
+            </div>
+            {run.steps.length > 0 && (
+              <ul className="timeline">
+                {run.steps.map((tool, i) => {
+                  const { label, risk } = toolLabel(tool)
+                  return (
+                    <li key={i} className={`tl tl--${risk}`}>
+                      <span className="tl__dot" aria-hidden />
+                      {label}
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+            {run.streamingText && (
+              <div className="streaming">
+                {run.streamingText}
+                <span className="caret" aria-hidden>
+                  ▍
+                </span>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -91,24 +107,30 @@ function App(): React.JSX.Element {
               <li key={c.id}>{c.description}</li>
             ))}
           </ul>
-          <button className="changes__undo" onClick={() => void handleRollback()}>
+          <button className="changes__undo" onClick={() => void rollback()}>
             一键还原
           </button>
         </div>
       )}
       {reverted && <div className="changes changes--reverted">已还原</div>}
 
-      <div className="chat__input">
+      <div className="composer">
         <textarea
           aria-label="问题描述"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
+          onKeyDown={onKeyDown}
           placeholder="回车发送，Shift+Enter 换行"
-          rows={2}
+          rows={1}
+          disabled={running}
         />
-        <button onClick={() => void handleSubmit()} disabled={loading || !input.trim()}>
-          发送
+        <button
+          className="composer__send"
+          onClick={submit}
+          disabled={running || !input.trim()}
+          aria-label="发送"
+        >
+          ↑
         </button>
       </div>
     </div>

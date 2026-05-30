@@ -23,7 +23,10 @@ describe('App 对话式', () => {
 
     expect(screen.getByText('我连不上网')).toBeInTheDocument()
     await waitFor(() => expect(screen.getByText('你的网络是通的。')).toBeInTheDocument())
-    expect(window.api.runAgent).toHaveBeenCalledWith([{ role: 'user', content: '我连不上网' }])
+    expect(window.api.runAgent).toHaveBeenCalledWith(
+      [{ role: 'user', content: '我连不上网' }],
+      expect.any(Function)
+    )
     expect((box as HTMLTextAreaElement).value).toBe('')
   })
 
