@@ -4,9 +4,9 @@ import { electronAPI } from '@electron-toolkit/preload'
 // Custom APIs for renderer
 const api = {
   runAgent: (
-    text: string
+    messages: { role: 'user' | 'assistant'; content: string }[]
   ): Promise<{ text: string; toolCalls: { toolName: string; input: unknown }[] }> =>
-    ipcRenderer.invoke('agent:run', text)
+    ipcRenderer.invoke('agent:run', messages)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

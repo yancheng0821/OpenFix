@@ -54,10 +54,13 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
-  // OpenFix：渲染层把用户一句话交给引擎，返回排查结论
-  ipcMain.handle('agent:run', async (_event, userText: string) => {
-    return runAgent(userText)
-  })
+  // OpenFix：渲染层把对话历史交给引擎，返回新一轮排查结论
+  ipcMain.handle(
+    'agent:run',
+    async (_event, messages: { role: 'user' | 'assistant'; content: string }[]) => {
+      return runAgent(messages)
+    }
+  )
 
   createWindow()
 

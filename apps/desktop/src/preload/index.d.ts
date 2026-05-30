@@ -5,7 +5,7 @@ declare global {
     electron: ElectronAPI
     api: {
       runAgent: (
-        text: string
+        messages: { role: 'user' | 'assistant'; content: string }[]
       ) => Promise<{ text: string; toolCalls: { toolName: string; input: unknown }[] }>
     }
   }
