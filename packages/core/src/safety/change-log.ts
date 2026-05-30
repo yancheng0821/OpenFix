@@ -34,4 +34,12 @@ export class ChangeLog {
     }
     this.entries = []
   }
+
+  /** 只回滚"可逆"改动（LIFO），并移除它们；不可逆记录保留（无法撤销）。 */
+  async rollbackReversible(): Promise<void> {
+    for (let i = this.entries.length - 1; i >= 0; i--) {
+      if (this.entries[i].riskLevel === 'reversible') await this.entries[i].rollback()
+    }
+    this.entries = this.entries.filter((e) => e.riskLevel !== 'reversible')
+  }
 }

@@ -19,4 +19,14 @@ describe('ChangeLog', () => {
     expect(order).toEqual([2, 1]) // 后改的先回滚（LIFO）
     expect(log.list()).toEqual([])
   })
+
+  it('rollbackReversible 只回滚可逆项，保留不可逆记录', async () => {
+    const log = new ChangeLog()
+    const order: string[] = []
+    log.record({ description: 'rev', riskLevel: 'reversible', rollback: async () => void order.push('rev') })
+    log.record({ description: 'irr', riskLevel: 'irreversible', rollback: async () => void order.push('irr') })
+    await log.rollbackReversible()
+    expect(order).toEqual(['rev']) // 只回滚可逆
+    expect(log.list().map((c) => c.riskLevel)).toEqual(['irreversible']) // 不可逆记录保留
+  })
 })
