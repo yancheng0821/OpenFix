@@ -1,7 +1,7 @@
 import { generateText, stepCountIs, type LanguageModel, type ToolSet } from 'ai'
-import { getModel } from './llm'
-import { runReadOnly } from './shell'
-import { createNetworkTools } from './tools/network'
+import { getModel } from './llm.js'
+import { runReadOnly } from './shell.js'
+import { createNetworkTools } from './tools/network.js'
 
 export interface RunAgentDeps {
   model?: LanguageModel

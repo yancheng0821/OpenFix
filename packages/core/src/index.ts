@@ -1,3 +1,3 @@
-export { runAgent } from './run-agent'
-export type { AgentResult, RunAgentDeps } from './run-agent'
-export type { ShellResult, ShellRunner } from './shell'
+export { runAgent } from './run-agent.js'
+export type { AgentResult, RunAgentDeps } from './run-agent.js'
+export type { ShellResult, ShellRunner } from './shell.js'

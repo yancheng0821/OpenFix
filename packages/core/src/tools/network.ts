@@ -1,6 +1,6 @@
 import { tool, type ToolSet } from 'ai'
 import { z } from 'zod'
-import type { ShellRunner } from '../shell'
+import type { ShellRunner } from '../shell.js'
 
 /** 用注入的 shell runner 造出网络只读工具集（macOS：ping -c 1 -t 3）。 */
 export function createNetworkTools(shell: ShellRunner): ToolSet {
