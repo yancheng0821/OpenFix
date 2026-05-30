@@ -1,16 +1,27 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
+import type { AgentEvent } from '@openfix/core'
+
+type RunResult = {
+  text: string
+  toolCalls: { toolName: string; input: unknown }[]
+  changes: { id: number; description: string; riskLevel: 'reversible' | 'irreversible' }[]
+  rolledBack: boolean
+}
 
 // Custom APIs for renderer
 const api = {
   runAgent: (
-    messages: { role: 'user' | 'assistant'; content: string }[]
-  ): Promise<{
-    text: string
-    toolCalls: { toolName: string; input: unknown }[]
-    changes: { id: number; description: string; riskLevel: 'reversible' | 'irreversible' }[]
-    rolledBack: boolean
-  }> => ipcRenderer.invoke('agent:run', messages),
+    messages: { role: 'user' | 'assistant'; content: string }[],
+    onEvent?: (event: AgentEvent) => void
+  ): Promise<RunResult> => {
+    if (!onEvent) return ipcRenderer.invoke('agent:run', messages)
+    const listener = (_e: IpcRendererEvent, ev: AgentEvent): void => onEvent(ev)
+    ipcRenderer.on('agent:event', listener)
+    return (ipcRenderer.invoke('agent:run', messages) as Promise<RunResult>).finally(() =>
+      ipcRenderer.removeListener('agent:event', listener)
+    )
+  },
   rollback: (): Promise<{ ok: boolean }> => ipcRenderer.invoke('agent:rollback')
 }
 

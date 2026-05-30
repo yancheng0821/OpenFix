@@ -1,7 +1,7 @@
 import 'dotenv/config'
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
-import { runAgent, ChangeLog } from '@openfix/core'
+import { streamAgent, ChangeLog, type AgentEvent } from '@openfix/core'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
@@ -59,12 +59,16 @@ app.whenReady().then(() => {
 
   ipcMain.handle(
     'agent:run',
-    async (_event, messages: { role: 'user' | 'assistant'; content: string }[]) => {
+    async (event, messages: { role: 'user' | 'assistant'; content: string }[]) => {
       const changeLog = new ChangeLog()
-      const result = await runAgent(messages, { changeLog })
-      // 成功且有改动 → 留还原句柄；失败(已自动还原)或无改动 → 清空
+      const result = await streamAgent(messages, {
+        changeLog,
+        onEvent: (ev: AgentEvent) => event.sender.send('agent:event', ev)
+      })
+      // 成功且有"可逆"改动 → 留还原句柄；失败(已自动还原)或无可逆改动 → 清空
+      const hasReversible = result.changes.some((c) => c.riskLevel === 'reversible')
       currentRollback =
-        !result.rolledBack && result.changes.length > 0 ? () => changeLog.rollbackAll() : null
+        !result.rolledBack && hasReversible ? () => changeLog.rollbackReversible() : null
       return result
     }
   )
