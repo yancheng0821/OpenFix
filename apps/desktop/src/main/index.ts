@@ -113,19 +113,26 @@ app.whenReady().then(() => {
           memory
         })
       } catch (e) {
-        // 联网失败 → 自动切本地模型，只给网络包（断网就是修网络）
-        if (isOffline(e) && cfg.local.baseURL) {
-          send({ type: 'text', delta: '（联网失败，已切到本地模型，仅排查网络问题）\n\n' })
+        if (!isOffline(e) || !cfg.local.baseURL) throw e
+        // 联网失败 → 尝试本地兜底（仅网络包）。本地模型是可选项，没装就如实告知，别甩报错。
+        try {
           result = await streamAgent(messages, {
             changeLog,
             onEvent: send,
             confirm,
-            model: createModel({ baseURL: cfg.local.baseURL, apiKey: 'ollama', model: cfg.local.model }),
+            model: createModel({
+              baseURL: cfg.local.baseURL,
+              apiKey: 'ollama',
+              model: cfg.local.model
+            }),
             skillPacks: [networkSkillPack],
             memory
           })
-        } else {
-          throw e
+        } catch {
+          const msg =
+            '现在连不上网，也没有可用的本地模型，这次先没法帮你处理。\n\n如果希望断网时也能用，可以在「设置」里按说明安装本地模型（Ollama）——平时联网用不到它。'
+          send({ type: 'text', delta: msg })
+          result = { text: msg, toolCalls: [], changes: [], rolledBack: false, messages: [] }
         }
       }
 

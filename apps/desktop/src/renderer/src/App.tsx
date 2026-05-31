@@ -263,7 +263,7 @@ function App(): React.JSX.Element {
                   onChange={(e) => updCfg('cloud', 'model', e.target.value)}
                 />
               </label>
-              <div className="settings__group">本地模型（断网时自动回退，仅修网络）</div>
+              <div className="settings__group">本地模型（可选 · 断网兜底，仅修网络）</div>
               <label className="settings__row">
                 接口地址
                 <input
@@ -281,7 +281,8 @@ function App(): React.JSX.Element {
                 />
               </label>
               <div className="settings__hint">
-                本地模型需先装 Ollama 并 ollama pull qwen3:8b；只在联网失败时自动启用。
+                可选项，不装也不影响联网正常使用。想让断网时也能用，需自行安装 Ollama
+                并执行 ollama pull qwen3:8b——之后联网失败会自动切到它（仅排查网络问题）。
               </div>
               <div className="settings__group">记忆</div>
               <div className="settings__hint">
