@@ -15,8 +15,9 @@ export interface StreamDeps extends RunDeps {
 }
 
 /** 把工具映射到"它当下在做什么"，让界面状态贴合实际（不是一律"排查"）。 */
-function phaseForTool(tool: string): AgentPhase {
+export function phaseForTool(tool: string): AgentPhase {
   if (tool.startsWith('verify')) return 'verifying'
+  if (tool === 'remember') return 'thinking'
   if (tool === 'open_app' || tool === 'open_url') return 'working'
   if (
     tool === 'run_diagnostic' ||

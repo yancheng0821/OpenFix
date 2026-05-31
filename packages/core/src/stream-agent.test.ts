@@ -2,8 +2,20 @@ import { describe, it, expect } from 'vitest'
 import { MockLanguageModelV2 } from 'ai/test'
 import { simulateReadableStream, tool, type ToolSet } from 'ai'
 import { z } from 'zod'
-import { streamAgent } from './stream-agent'
+import { streamAgent, phaseForTool } from './stream-agent'
 import type { AgentEvent } from './run-shared'
+
+describe('phaseForTool', () => {
+  it('remember 归到 thinking（记笔记不显示"修复"）', () => {
+    expect(phaseForTool('remember')).toBe('thinking')
+  })
+  it('诊断/打开/复测/写各归其位', () => {
+    expect(phaseForTool('run_diagnostic')).toBe('investigating')
+    expect(phaseForTool('open_app')).toBe('working')
+    expect(phaseForTool('verify_connectivity')).toBe('verifying')
+    expect(phaseForTool('set_dns_servers')).toBe('fixing')
+  })
+})
 
 describe('streamAgent', () => {
   it('流式发出 step 与 text 事件，最终 done 带等价 AgentResult', async () => {
