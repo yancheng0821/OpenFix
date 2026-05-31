@@ -22,8 +22,10 @@ describe('networkSkillPack', () => {
     expect(networkSkillPack.systemPrompt).toMatch(/verify_connectivity/)
   })
 
-  it('系统提示要求先查活动网卡、并认识 fake-ip', () => {
-    expect(networkSkillPack.systemPrompt).toMatch(/route -n get default/)
-    expect(networkSkillPack.systemPrompt).toMatch(/198\.18/)
+  it('系统提示给通用原则（不假设 Wi-Fi、先查根因再动手），而非枚举具体网络现象', () => {
+    expect(networkSkillPack.systemPrompt).toMatch(/活动网卡/)
+    expect(networkSkillPack.systemPrompt).toMatch(/根因/)
+    // 不再往提示词里塞具体模式（如 fake-ip 的 198.18 网段）——那是模型自带的知识
+    expect(networkSkillPack.systemPrompt).not.toMatch(/198\.18/)
   })
 })
