@@ -6,11 +6,13 @@ import {
   ChangeLog,
   createModel,
   networkSkillPack,
-  type AgentEvent
+  type AgentEvent,
+  type MemoryEntry
 } from '@openfix/core'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { loadConfig, saveConfig, type AppConfig } from './config'
+import { readMemory, appendMemory, openMemory } from './memory'
 
 /** 判断错误是否为"联网失败"（用于自动回退本地模型）。 */
 function isOffline(e: unknown): boolean {
@@ -87,6 +89,10 @@ app.whenReady().then(() => {
     async (event, messages: { role: 'user' | 'assistant'; content: string }[]) => {
       const changeLog = new ChangeLog()
       const cfg = loadConfig()
+      const memory = {
+        content: readMemory(),
+        remember: async (e: MemoryEntry): Promise<void> => appendMemory(e)
+      }
       const send = (ev: AgentEvent): void => {
         event.sender.send('agent:event', ev)
       }
@@ -104,7 +110,8 @@ app.whenReady().then(() => {
           changeLog,
           onEvent: send,
           confirm,
-          model: createModel(cfg.cloud)
+          model: createModel(cfg.cloud),
+          memory
         })
       } catch (e) {
         // 联网失败 → 自动切本地模型，只给网络包（断网就是修网络）
@@ -115,7 +122,8 @@ app.whenReady().then(() => {
             onEvent: send,
             confirm,
             model: createModel({ baseURL: cfg.local.baseURL, apiKey: 'ollama', model: cfg.local.model }),
-            skillPacks: [networkSkillPack]
+            skillPacks: [networkSkillPack],
+            memory
           })
         } else {
           throw e
@@ -142,6 +150,11 @@ app.whenReady().then(() => {
   ipcMain.handle('config:get', () => loadConfig())
   ipcMain.handle('config:set', (_e, cfg: AppConfig) => {
     saveConfig(cfg)
+    return { ok: true }
+  })
+
+  ipcMain.handle('memory:open', () => {
+    openMemory()
     return { ok: true }
   })
 
