@@ -19,3 +19,4 @@ export {
   SCAFFOLD
 } from './memory/memory.js'
 export type { MemoryCategory, MemoryEntry } from './memory/memory.js'
+export { createMemoryTool } from './tools/memory-tool.js'
