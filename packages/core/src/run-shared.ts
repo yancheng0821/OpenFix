@@ -13,6 +13,8 @@ import { networkSkillPack } from './skills/network-pack.js'
 import { systemSkillPack } from './skills/system-pack.js'
 import { createDiagnosticTools } from './tools/diagnostic.js'
 import { createProposeFixTool } from './tools/propose-fix.js'
+import { createMemoryTool } from './tools/memory-tool.js'
+import { composeMemoryInjection, type MemoryEntry } from './memory/memory.js'
 
 export const BASE_SYSTEM = `你是 OpenFix，帮用户搞定电脑和网络问题的助手。
 说话像个靠谱的朋友：平实、好懂、温和友好，把复杂的事讲简单。不要居高临下，不要给用户贴"普通人/小白"之类的标签，也别用术语轰炸（需要用到术语时顺手一句话解释）。
@@ -47,6 +49,8 @@ export interface RunDeps {
   changeLog?: ChangeLog
   skillPacks?: SkillPack[]
   confirm?: (description: string) => Promise<boolean>
+  /** 本地记忆：注入内容 + 写回调（由宿主进程提供文件 I/O）。 */
+  memory?: { content: string; remember: (entry: MemoryEntry) => Promise<void> }
 }
 
 export interface Assembled {
@@ -69,11 +73,14 @@ export function assembleRun(deps: RunDeps): Assembled {
     deps.tools ?? {
       ...createDiagnosticTools(shell),
       ...createProposeFixTool({ shell, changeLog, confirm: deps.confirm }),
-      ...composeTools(packs, skillContext)
+      ...composeTools(packs, skillContext),
+      ...(deps.memory ? createMemoryTool(deps.memory.remember) : {})
     }
   const system = deps.tools
     ? BASE_SYSTEM
-    : [BASE_SYSTEM, composeSystemPrompts(packs)].filter(Boolean).join('\n\n')
+    : [BASE_SYSTEM, composeSystemPrompts(packs), composeMemoryInjection(deps.memory?.content ?? '')]
+        .filter(Boolean)
+        .join('\n\n')
   return { model, tools, system, changeLog, verification }
 }
 

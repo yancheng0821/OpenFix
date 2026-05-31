@@ -67,3 +67,21 @@ describe('concludeIfNeeded', () => {
     expect(out).toBe('补的结论')
   })
 })
+
+describe('assembleRun 记忆接入', () => {
+  it('传 memory：system 含注入文案、工具集含 remember', () => {
+    const a = assembleRun({
+      model: {} as never,
+      memory: { content: '## 机器事实\n- en7=AX88179B', remember: async () => {} }
+    })
+    expect(a.system).toMatch(/关于这台机器/)
+    expect(a.system).toMatch(/en7=AX88179B/)
+    expect('remember' in a.tools).toBe(true)
+  })
+
+  it('不传 memory：system 无注入、工具集无 remember', () => {
+    const a = assembleRun({ model: {} as never })
+    expect(a.system).not.toMatch(/关于这台机器/)
+    expect('remember' in a.tools).toBe(false)
+  })
+})
