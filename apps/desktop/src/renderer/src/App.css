@@ -133,13 +133,13 @@ body {
   padding: 20px;
 }
 .empty__mark {
-  width: 62px;
-  height: 62px;
-  object-fit: cover;
-  border-radius: 16px;
+  width: 76px;
+  height: 76px;
+  object-fit: contain;
   display: block;
-  margin: 0 auto 14px;
-  box-shadow: 0 8px 22px rgba(10, 132, 255, 0.28);
+  margin: 0 auto 12px;
+  /* 用 drop-shadow 跟随方图 alpha，阴影贴着圆角而非方框 */
+  filter: drop-shadow(0 8px 18px rgba(10, 132, 255, 0.26));
 }
 .empty__title {
   margin: 0;

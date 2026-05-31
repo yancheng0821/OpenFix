@@ -3,6 +3,7 @@ import './App.css'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import logo from './assets/logo.png'
+import iconMark from './assets/icon-mark.png'
 import { useAgentRun, type RunStep } from './hooks/useAgentRun'
 import { useConfirm } from './hooks/useConfirm'
 import { useTypewriter } from './hooks/useTypewriter'
@@ -44,7 +45,7 @@ function StepList({ steps }: { steps: RunStep[] }): React.JSX.Element {
   )
 }
 
-const EXAMPLES = ['我连不上网', 'GitHub 打不开', '网速很慢', '电脑好卡']
+const EXAMPLES = ['上不了网', '电脑很卡', '清理垃圾腾空间', '微信打不开']
 const PHASE_LABEL: Record<string, string> = {
   thinking: '正在思考…',
   investigating: '正在排查',
@@ -130,7 +131,7 @@ function App(): React.JSX.Element {
       <div className="log" ref={logRef} aria-label="对话">
         {empty && (
           <div className="empty">
-            <img className="empty__mark" src={logo} alt="" aria-hidden />
+            <img className="empty__mark" src={iconMark} alt="" aria-hidden />
             <h2 className="empty__title">有什么可以帮你的？</h2>
             <p className="empty__sub">
               电脑、网络上的事，说一句话我来查、来修、修完帮你验证 —— 改了啥都能一键还原。
@@ -201,7 +202,7 @@ function App(): React.JSX.Element {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="电脑上的事，尽管跟我说…"
+            placeholder="有什么需要帮忙的…"
             rows={1}
             disabled={running}
           />
