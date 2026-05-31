@@ -17,6 +17,7 @@ const LABELS: Record<string, { label: string; risk: Risk }> = {
   restart_dock: { label: '重启程序坞', risk: 'write' },
   open_app: { label: '打开应用', risk: 'read' },
   open_url: { label: '打开网址', risk: 'read' },
+  remember: { label: '记住', risk: 'read' },
   propose_fix: { label: '执行修复', risk: 'write' },
   verify_connectivity: { label: '复测连通性', risk: 'verify' }
 }

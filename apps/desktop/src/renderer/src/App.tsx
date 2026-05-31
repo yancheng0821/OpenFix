@@ -258,6 +258,17 @@ function App(): React.JSX.Element {
               <div className="settings__hint">
                 本地模型需先装 Ollama 并 ollama pull qwen3:8b；只在联网失败时自动启用。
               </div>
+              <div className="settings__group">记忆</div>
+              <div className="settings__hint">
+                OpenFix 会自动记住这台机器的事实和你的偏好（只存非敏感信息），让以后更快帮上忙。
+              </div>
+              <button
+                className="changes__undo"
+                style={{ alignSelf: 'flex-start' }}
+                onClick={() => void window.api.openMemoryFile()}
+              >
+                打开记忆文件
+              </button>
             </div>
             <div className="modal__actions">
               <button className="modal__cancel" onClick={() => setSettingsOpen(false)}>
