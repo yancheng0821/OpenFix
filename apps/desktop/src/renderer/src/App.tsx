@@ -7,6 +7,15 @@ import { useAgentRun } from './hooks/useAgentRun'
 import { useConfirm } from './hooks/useConfirm'
 import { toolLabel, formatDetail } from './lib/toolLabels'
 
+/** 统一的 markdown 渲染（流式与最终都走它，避免先看到原始星号）。 */
+function MD({ children }: { children: string }): React.JSX.Element {
+  return (
+    <div className="md">
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{children}</ReactMarkdown>
+    </div>
+  )
+}
+
 const EXAMPLES = ['我连不上网', 'GitHub 打不开', '网速很慢', '电脑好卡']
 const PHASE_LABEL: Record<string, string> = {
   investigating: '正在排查',
@@ -96,11 +105,7 @@ function App(): React.JSX.Element {
         {messages.map((m, i) => (
           <div key={i} className={`msg msg--${m.role}`}>
             <div className="msg__bubble">
-              {m.role === 'assistant' ? (
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
-              ) : (
-                m.content
-              )}
+              {m.role === 'assistant' ? <MD>{m.content}</MD> : m.content}
             </div>
           </div>
         ))}
@@ -137,7 +142,7 @@ function App(): React.JSX.Element {
             )}
             {run.streamingText && (
               <div className="concl">
-                {run.streamingText}
+                <MD>{run.streamingText}</MD>
                 <span className="caret" aria-hidden>
                   ▍
                 </span>
