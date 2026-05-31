@@ -12,6 +12,10 @@ const LABELS: Record<string, { label: string; risk: Risk }> = {
   clear_proxy: { label: '关闭代理', risk: 'write' },
   restart_wifi: { label: '重启 Wi-Fi', risk: 'write' },
   empty_trash: { label: '清空废纸篓', risk: 'write' },
+  kill_process: { label: '结束进程', risk: 'write' },
+  restart_finder: { label: '重启访达', risk: 'write' },
+  restart_dock: { label: '重启程序坞', risk: 'write' },
+  propose_fix: { label: '执行修复', risk: 'write' },
   verify_connectivity: { label: '复测连通性', risk: 'verify' }
 }
 

@@ -35,3 +35,46 @@ describe('empty_trash', () => {
     expect(changeLog.list()).toEqual([])
   })
 })
+
+describe('kill_process', () => {
+  it('已授权：kill 指定 PID 并记一条不可逆改动', async () => {
+    const calls: string[] = []
+    const shell = async (cmd: string, args: string[]) => {
+      calls.push([cmd, ...args].join(' '))
+      return { code: 0, stdout: '', stderr: '' }
+    }
+    const changeLog = new ChangeLog()
+    const tools = createSystemFixTools({ shell, changeLog, confirm: async () => true })
+    await tools.kill_process.execute!({ pid: 1234 }, okOptions)
+    expect(calls).toContain('kill 1234')
+    expect(changeLog.list()[0]).toMatchObject({ riskLevel: 'irreversible' })
+  })
+
+  it('未授权：拒绝，不 kill', async () => {
+    const calls: string[] = []
+    const shell = async (cmd: string, args: string[]) => {
+      calls.push([cmd, ...args].join(' '))
+      return { code: 0, stdout: '', stderr: '' }
+    }
+    const changeLog = new ChangeLog()
+    const tools = createSystemFixTools({ shell, changeLog })
+    const out = (await tools.kill_process.execute!({ pid: 1234 }, okOptions)) as string
+    expect(out).toMatch(/拒绝|未获授权/)
+    expect(calls).toEqual([])
+  })
+})
+
+describe('restart_finder（safe）', () => {
+  it('直接执行、不需确认、不记账', async () => {
+    const calls: string[] = []
+    const shell = async (cmd: string, args: string[]) => {
+      calls.push([cmd, ...args].join(' '))
+      return { code: 0, stdout: '', stderr: '' }
+    }
+    const changeLog = new ChangeLog()
+    const tools = createSystemFixTools({ shell, changeLog }) // 无 confirm
+    await tools.restart_finder.execute!({}, okOptions)
+    expect(calls).toContain('killall Finder')
+    expect(changeLog.list()).toEqual([])
+  })
+})

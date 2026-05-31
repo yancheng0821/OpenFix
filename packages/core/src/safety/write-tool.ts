@@ -32,6 +32,10 @@ export function createWriteTool<S extends z.ZodTypeAny>(
     inputSchema: spec.inputSchema,
     execute: async (input: z.infer<S>) => {
       const desc = spec.describe(input)
+      if (spec.riskLevel === 'safe') {
+        // 安全动作（自恢复、无需撤销）：直接执行，不确认、不记账
+        return spec.apply(input, ctx.shell)
+      }
       if (spec.riskLevel === 'irreversible') {
         const ok = ctx.confirm ? await ctx.confirm(desc) : false
         if (!ok) return `已拒绝执行（不可逆操作需用户确认，未获授权）：${desc}`

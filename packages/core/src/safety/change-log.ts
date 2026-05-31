@@ -1,4 +1,4 @@
-export type RiskLevel = 'reversible' | 'irreversible'
+export type RiskLevel = 'reversible' | 'irreversible' | 'safe'
 
 export interface ChangeEntry {
   id: number

@@ -2,7 +2,7 @@ import { z } from 'zod'
 import type { ToolSet } from 'ai'
 import { createWriteTool, type WriteToolContext } from '../safety/write-tool.js'
 
-/** 软件/系统域不可逆写工具（需用户确认）。 */
+/** 软件/系统域修复工具：不可逆（需确认）+ 安全自恢复动作。 */
 export function createSystemFixTools(ctx: WriteToolContext): ToolSet {
   return {
     empty_trash: createWriteTool(
@@ -14,6 +14,50 @@ export function createSystemFixTools(ctx: WriteToolContext): ToolSet {
         apply: async (_input, shell) => {
           await shell('osascript', ['-e', 'tell application "Finder" to empty trash'])
           return '已清空废纸篓。'
+        }
+      },
+      ctx
+    ),
+
+    kill_process: createWriteTool(
+      {
+        description: '结束一个卡死或占用资源过高的进程（需用户确认；进程之后可重新打开）。',
+        inputSchema: z.object({
+          pid: z.number().int().describe('进程 PID（先用 run_diagnostic 跑 ps/top 查到）')
+        }),
+        riskLevel: 'irreversible',
+        describe: (i) => `结束进程 PID ${i.pid}`,
+        apply: async (i, shell) => {
+          await shell('kill', [String(i.pid)])
+          return `已结束进程 ${i.pid}`
+        }
+      },
+      ctx
+    ),
+
+    restart_finder: createWriteTool(
+      {
+        description: '重启访达 Finder（卡住/图标异常时；会自动重新启动，安全）。',
+        inputSchema: z.object({}),
+        riskLevel: 'safe',
+        describe: () => '重启访达 Finder',
+        apply: async (_i, shell) => {
+          await shell('killall', ['Finder'])
+          return '已重启访达 Finder'
+        }
+      },
+      ctx
+    ),
+
+    restart_dock: createWriteTool(
+      {
+        description: '重启程序坞 Dock（图标乱/不见/卡住时；会自动重新启动，安全）。',
+        inputSchema: z.object({}),
+        riskLevel: 'safe',
+        describe: () => '重启程序坞 Dock',
+        apply: async (_i, shell) => {
+          await shell('killall', ['Dock'])
+          return '已重启程序坞 Dock'
         }
       },
       ctx

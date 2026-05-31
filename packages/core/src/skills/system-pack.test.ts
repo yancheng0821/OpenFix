@@ -10,6 +10,11 @@ describe('systemSkillPack', () => {
       changeLog: new ChangeLog(),
       verification: new Verification()
     })
-    expect(Object.keys(tools).sort()).toEqual(['empty_trash'])
+    expect(Object.keys(tools).sort()).toEqual([
+      'empty_trash',
+      'kill_process',
+      'restart_dock',
+      'restart_finder'
+    ])
   })
 })

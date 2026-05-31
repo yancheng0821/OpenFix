@@ -68,4 +68,12 @@ describe('createWriteTool', () => {
     await ctx.changeLog.rollbackAll()
     expect(specRollbackCalled).toBe(false)
   })
+
+  it('safe 动作：直接执行、不需确认、不记账', async () => {
+    const ctx = makeCtx() // 无 confirm
+    const t = createWriteTool({ ...spec, riskLevel: 'safe' }, ctx)
+    const out = await t.execute!({ value: 'X' }, okOptions)
+    expect(out).toBe('已设为 X')
+    expect(ctx.changeLog.list()).toEqual([])
+  })
 })
