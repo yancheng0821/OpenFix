@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm'
 import logo from './assets/logo.png'
 import { useAgentRun } from './hooks/useAgentRun'
 import { useConfirm } from './hooks/useConfirm'
+import { useTypewriter } from './hooks/useTypewriter'
 import { toolLabel, formatDetail } from './lib/toolLabels'
 
 /** 统一的 markdown 渲染（流式与最终都走它，避免先看到原始星号）。 */
@@ -38,11 +39,13 @@ function App(): React.JSX.Element {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [cfg, setCfg] = useState<AppConfig | null>(null)
   const logRef = useRef<HTMLDivElement>(null)
+  // 打字机缓冲：与网络分块解耦，按帧平滑吐字
+  const streamed = useTypewriter(run.streamingText, running)
 
   useEffect(() => {
     const el = logRef.current
     if (el) el.scrollTop = el.scrollHeight
-  }, [messages, run, running])
+  }, [messages, run, running, streamed])
 
   function submit(): void {
     const t = input.trim()
@@ -144,7 +147,7 @@ function App(): React.JSX.Element {
             )}
             {run.streamingText && (
               <div className="concl">
-                <MD>{run.streamingText}</MD>
+                <MD>{streamed}</MD>
                 <span className="caret" aria-hidden>
                   ▍
                 </span>
