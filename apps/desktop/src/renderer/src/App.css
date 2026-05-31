@@ -232,14 +232,11 @@ body {
   margin: 10px 0 6px;
 }
 
+/* 运行中的进度：轻量内联，不套卡片气泡框 */
 .activity {
   align-self: stretch;
-  background: var(--surface);
-  border: 1px solid var(--hairline);
-  border-radius: 14px;
-  box-shadow: var(--shadow);
-  padding: 13px 14px;
-  margin-bottom: 12px;
+  padding: 2px 2px 4px;
+  margin-bottom: 10px;
 }
 .pill {
   display: inline-flex;
@@ -268,12 +265,11 @@ body {
 }
 .timeline {
   list-style: none;
-  margin: 13px 0 0;
-  padding: 13px 0 0;
-  border-top: 1px solid var(--hairline);
+  margin: 9px 0 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 6px;
 }
 .tl {
   display: grid;
@@ -321,9 +317,7 @@ body {
   border: 1px solid var(--chip-border);
 }
 .concl {
-  margin-top: 13px;
-  padding-top: 13px;
-  border-top: 1px dashed var(--hairline);
+  margin-top: 10px;
   font-size: 13px;
   line-height: 1.55;
 }
