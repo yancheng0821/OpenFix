@@ -60,4 +60,14 @@ describe('isReadOnlyAllowed', () => {
     expect(isReadOnlyAllowed('env', []).allowed).toBe(false)
     expect(isReadOnlyAllowed('printenv', []).allowed).toBe(false)
   })
+
+  it('app 诊断只读命令放行，写子命令拒绝', () => {
+    expect(isReadOnlyAllowed('mdls', ['/Applications/Safari.app']).allowed).toBe(true)
+    expect(isReadOnlyAllowed('xattr', ['-p', 'com.apple.quarantine', '/Applications/X.app']).allowed).toBe(true)
+    expect(isReadOnlyAllowed('xattr', ['-d', 'com.apple.quarantine', '/x']).allowed).toBe(false)
+    expect(isReadOnlyAllowed('codesign', ['--verify', '/Applications/X.app']).allowed).toBe(true)
+    expect(isReadOnlyAllowed('codesign', ['-s', 'id', '/x']).allowed).toBe(false)
+    expect(isReadOnlyAllowed('plutil', ['-p', 'x.plist']).allowed).toBe(true)
+    expect(isReadOnlyAllowed('plutil', ['-convert', 'xml1', 'x.plist']).allowed).toBe(false)
+  })
 })

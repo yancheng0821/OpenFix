@@ -15,6 +15,8 @@ const LABELS: Record<string, { label: string; risk: Risk }> = {
   kill_process: { label: '结束进程', risk: 'write' },
   restart_finder: { label: '重启访达', risk: 'write' },
   restart_dock: { label: '重启程序坞', risk: 'write' },
+  open_app: { label: '打开应用', risk: 'read' },
+  open_url: { label: '打开网址', risk: 'read' },
   propose_fix: { label: '执行修复', risk: 'write' },
   verify_connectivity: { label: '复测连通性', risk: 'verify' }
 }

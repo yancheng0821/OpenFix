@@ -13,6 +13,8 @@ describe('systemSkillPack', () => {
     expect(Object.keys(tools).sort()).toEqual([
       'empty_trash',
       'kill_process',
+      'open_app',
+      'open_url',
       'restart_dock',
       'restart_finder'
     ])

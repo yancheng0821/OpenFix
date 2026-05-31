@@ -12,7 +12,7 @@ const ALWAYS_READONLY = new Set([
   // 系统/环境信息
   'ps', 'vm_stat', 'sw_vers', 'uname', 'system_profiler', 'ioreg', 'getconf',
   'arch', 'locale', 'groups', 'whoami', 'id', 'date', 'uptime', 'hostname',
-  'which', 'mdfind', 'last',
+  'which', 'mdfind', 'mdls', 'last',
   // 文件内容（受下方敏感路径守卫约束）
   'cat', 'head', 'tail'
 ])
@@ -58,7 +58,12 @@ const GATED: Record<string, (args: string[]) => boolean> = {
   brew: (a) => a.includes('--version') || ['list', 'info', 'config', 'outdated', 'doctor', 'deps'].includes(a[0] ?? ''),
   pip: (a) => a.includes('--version') || ['list', 'show', 'freeze'].includes(a[0] ?? ''),
   pip3: (a) => a.includes('--version') || ['list', 'show', 'freeze'].includes(a[0] ?? ''),
-  defaults: (a) => ['read', 'read-type', 'domains', 'find'].includes(a[0] ?? '')
+  defaults: (a) => ['read', 'read-type', 'domains', 'find'].includes(a[0] ?? ''),
+  // app 诊断（程序打不开）：只读子集
+  xattr: (a) => !a.some((x) => x === '-w' || x === '-d' || x === '-c'),
+  codesign: (a) =>
+    !a.includes('-s') && !a.includes('--sign') && !a.includes('--remove-signature'),
+  plutil: (a) => a[0] === '-p' || a[0] === '-lint'
 }
 
 /** 明确禁止（即便像"读"也拒绝，避免隐蔽写/任意执行）。 */

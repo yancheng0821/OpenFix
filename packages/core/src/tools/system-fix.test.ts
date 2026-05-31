@@ -78,3 +78,18 @@ describe('restart_finder（safe）', () => {
     expect(changeLog.list()).toEqual([])
   })
 })
+
+describe('open_app（safe）', () => {
+  it('open -a 打开 App，不需确认、不记账', async () => {
+    const calls: string[] = []
+    const shell = async (cmd: string, args: string[]) => {
+      calls.push([cmd, ...args].join(' '))
+      return { code: 0, stdout: '', stderr: '' }
+    }
+    const changeLog = new ChangeLog()
+    const tools = createSystemFixTools({ shell, changeLog })
+    await tools.open_app.execute!({ name: 'Safari' }, okOptions)
+    expect(calls).toContain('open -a Safari')
+    expect(changeLog.list()).toEqual([])
+  })
+})

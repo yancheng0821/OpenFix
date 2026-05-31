@@ -61,6 +61,34 @@ export function createSystemFixTools(ctx: WriteToolContext): ToolSet {
         }
       },
       ctx
+    ),
+
+    open_app: createWriteTool(
+      {
+        description: '打开/启动一个 App（"程序打不开"时尝试启动，或帮用户打开某软件）。',
+        inputSchema: z.object({ name: z.string().describe('App 名称，如 Safari、微信') }),
+        riskLevel: 'safe',
+        describe: (i) => `打开 ${i.name}`,
+        apply: async (i, shell) => {
+          await shell('open', ['-a', i.name])
+          return `已尝试打开 ${i.name}`
+        }
+      },
+      ctx
+    ),
+
+    open_url: createWriteTool(
+      {
+        description: '在默认浏览器打开一个网址（如帮用户打开软件官方下载页）。',
+        inputSchema: z.object({ url: z.string().describe('网址，如 https://...') }),
+        riskLevel: 'safe',
+        describe: (i) => `打开网址 ${i.url}`,
+        apply: async (i, shell) => {
+          await shell('open', [i.url])
+          return `已打开 ${i.url}`
+        }
+      },
+      ctx
     )
   }
 }
