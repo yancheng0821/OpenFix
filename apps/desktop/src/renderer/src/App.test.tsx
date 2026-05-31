@@ -12,7 +12,12 @@ beforeEach(() => {
     }),
     rollback: vi.fn().mockResolvedValue({ ok: true }),
     onConfirm: vi.fn().mockReturnValue(() => {}),
-    respondConfirm: vi.fn().mockResolvedValue({ ok: true })
+    respondConfirm: vi.fn().mockResolvedValue({ ok: true }),
+    getConfig: vi.fn().mockResolvedValue({
+      cloud: { baseURL: 'https://x/v1', apiKey: 'k', model: 'm' },
+      local: { baseURL: 'http://localhost:11434/v1', model: 'qwen3:8b' }
+    }),
+    setConfig: vi.fn().mockResolvedValue({ ok: true })
   }
 })
 
@@ -66,5 +71,15 @@ describe('App 对话式', () => {
     expect(screen.getByText('关闭挡路的代理')).toBeInTheDocument()
     fireEvent.click(screen.getByText('确认执行'))
     expect(window.api.respondConfirm).toHaveBeenCalledWith(7, true)
+  })
+
+  it('打开设置、点保存调用 setConfig', async () => {
+    render(<App />)
+    fireEvent.click(screen.getByLabelText('设置'))
+    await waitFor(() =>
+      expect(screen.getByText('云端模型（默认、全能力）')).toBeInTheDocument()
+    )
+    fireEvent.click(screen.getByText('保存'))
+    expect(window.api.setConfig).toHaveBeenCalled()
   })
 })

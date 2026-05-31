@@ -15,10 +15,17 @@ const PHASE_LABEL: Record<string, string> = {
   idle: '正在排查'
 }
 
+interface AppConfig {
+  cloud: { baseURL: string; apiKey: string; model: string }
+  local: { baseURL: string; model: string }
+}
+
 function App(): React.JSX.Element {
   const { messages, run, running, changes, reverted, send, rollback } = useAgentRun()
   const confirm = useConfirm()
   const [input, setInput] = useState('')
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [cfg, setCfg] = useState<AppConfig | null>(null)
   const logRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -40,6 +47,18 @@ function App(): React.JSX.Element {
     }
   }
 
+  function openSettings(): void {
+    void window.api.getConfig().then(setCfg)
+    setSettingsOpen(true)
+  }
+  function updCfg(section: 'cloud' | 'local', key: string, val: string): void {
+    setCfg((c) => (c ? { ...c, [section]: { ...c[section], [key]: val } } : c))
+  }
+  function saveSettings(): void {
+    if (cfg) void window.api.setConfig(cfg)
+    setSettingsOpen(false)
+  }
+
   const empty = messages.length === 0 && !running
   const lastStep = run.steps[run.steps.length - 1]
   const pillTail = lastStep ? toolLabel(lastStep.tool).label : ''
@@ -51,6 +70,9 @@ function App(): React.JSX.Element {
           <img className="titlebar__logo" src={logo} alt="" aria-hidden />
           OpenFix
         </span>
+        <button className="titlebar__gear" onClick={openSettings} aria-label="设置">
+          ⚙
+        </button>
       </header>
 
       <div className="log" ref={logRef} aria-label="对话">
@@ -174,6 +196,68 @@ function App(): React.JSX.Element {
               </button>
               <button className="modal__ok" onClick={() => confirm.respond(true)}>
                 确认执行
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {settingsOpen && cfg && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal__title">设置</div>
+            <div className="settings">
+              <div className="settings__group">云端模型（默认、全能力）</div>
+              <label className="settings__row">
+                接口地址
+                <input
+                  value={cfg.cloud.baseURL}
+                  onChange={(e) => updCfg('cloud', 'baseURL', e.target.value)}
+                  placeholder="https://…/v1"
+                />
+              </label>
+              <label className="settings__row">
+                API Key
+                <input
+                  type="password"
+                  value={cfg.cloud.apiKey}
+                  onChange={(e) => updCfg('cloud', 'apiKey', e.target.value)}
+                />
+              </label>
+              <label className="settings__row">
+                模型
+                <input
+                  value={cfg.cloud.model}
+                  onChange={(e) => updCfg('cloud', 'model', e.target.value)}
+                />
+              </label>
+              <div className="settings__group">本地模型（断网时自动回退，仅修网络）</div>
+              <label className="settings__row">
+                接口地址
+                <input
+                  value={cfg.local.baseURL}
+                  onChange={(e) => updCfg('local', 'baseURL', e.target.value)}
+                  placeholder="http://localhost:11434/v1"
+                />
+              </label>
+              <label className="settings__row">
+                模型
+                <input
+                  value={cfg.local.model}
+                  onChange={(e) => updCfg('local', 'model', e.target.value)}
+                  placeholder="qwen3:8b"
+                />
+              </label>
+              <div className="settings__hint">
+                本地模型需先装 Ollama 并 ollama pull qwen3:8b；只在联网失败时自动启用。
+              </div>
+            </div>
+            <div className="modal__actions">
+              <button className="modal__cancel" onClick={() => setSettingsOpen(false)}>
+                取消
+              </button>
+              <button className="modal__ok" onClick={saveSettings}>
+                保存
               </button>
             </div>
           </div>
