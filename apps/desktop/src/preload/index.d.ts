@@ -25,6 +25,7 @@ declare global {
         cloud: { baseURL: string; apiKey: string; model: string }
         local: { baseURL: string; model: string }
       }) => Promise<{ ok: boolean }>
+      openMemoryFile: () => Promise<{ ok: boolean }>
     }
   }
 }
