@@ -27,6 +27,7 @@ declare global {
         local: { baseURL: string; model: string }
       }) => Promise<{ ok: boolean }>
       openMemoryFile: () => Promise<{ ok: boolean }>
+      onMenuSettings: (cb: () => void) => () => void
     }
   }
 }

@@ -548,19 +548,30 @@ body {
 
 .titlebar__gear {
   position: absolute;
-  right: 12px;
+  right: 9px;
   top: 50%;
   transform: translateY(-50%);
   -webkit-app-region: no-drag;
   border: none;
   background: transparent;
   color: var(--text-2);
-  font-size: 16px;
   cursor: pointer;
-  padding: 2px 4px;
+  padding: 6px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  transition:
+    color 0.12s ease,
+    background 0.12s ease;
+}
+.titlebar__gear svg {
+  width: 18px;
+  height: 18px;
+  display: block;
 }
 .titlebar__gear:hover {
   color: var(--text);
+  background: rgba(127, 127, 127, 0.12);
 }
 
 .settings {

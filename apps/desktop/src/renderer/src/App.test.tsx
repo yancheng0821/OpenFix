@@ -8,7 +8,8 @@ beforeEach(() => {
       text: '你的网络是通的。',
       toolCalls: [],
       changes: [],
-      rolledBack: false
+      rolledBack: false,
+      messages: []
     }),
     rollback: vi.fn().mockResolvedValue({ ok: true }),
     onConfirm: vi.fn().mockReturnValue(() => {}),
@@ -17,7 +18,9 @@ beforeEach(() => {
       cloud: { baseURL: 'https://x/v1', apiKey: 'k', model: 'm' },
       local: { baseURL: 'http://localhost:11434/v1', model: 'qwen3:8b' }
     }),
-    setConfig: vi.fn().mockResolvedValue({ ok: true })
+    setConfig: vi.fn().mockResolvedValue({ ok: true }),
+    openMemoryFile: vi.fn().mockResolvedValue({ ok: true }),
+    onMenuSettings: vi.fn().mockReturnValue(() => {})
   }
 })
 

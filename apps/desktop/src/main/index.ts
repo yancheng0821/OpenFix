@@ -1,5 +1,5 @@
 import 'dotenv/config'
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, Menu, type MenuItemConstructorOptions } from 'electron'
 import { join } from 'path'
 import {
   streamAgent,
@@ -14,6 +14,75 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { loadConfig, saveConfig, type AppConfig } from './config'
 import { readMemory, appendMemory, openMemory } from './memory'
+
+// 应用名（决定菜单栏标题、userData 路径），否则 dev 下显示 "Electron"
+app.setName('OpenFix')
+
+/** 构建原生 macOS 菜单：应用菜单(含设置 ⌘,) + 编辑(拷贝/粘贴) + 视图 + 窗口。 */
+function buildAppMenu(): void {
+  const isMac = process.platform === 'darwin'
+  const openSettings = (): void =>
+    BrowserWindow.getAllWindows()[0]?.webContents.send('menu:settings')
+
+  const template: MenuItemConstructorOptions[] = [
+    ...(isMac
+      ? ([
+          {
+            label: app.name,
+            submenu: [
+              { role: 'about' },
+              { type: 'separator' },
+              { label: '设置…', accelerator: 'CmdOrCtrl+,', click: openSettings },
+              { type: 'separator' },
+              { role: 'hide' },
+              { role: 'hideOthers' },
+              { role: 'unhide' },
+              { type: 'separator' },
+              { role: 'quit' }
+            ]
+          }
+        ] as MenuItemConstructorOptions[])
+      : []),
+    {
+      label: '编辑',
+      submenu: [
+        { label: '撤销', role: 'undo' },
+        { label: '重做', role: 'redo' },
+        { type: 'separator' },
+        { label: '剪切', role: 'cut' },
+        { label: '拷贝', role: 'copy' },
+        { label: '粘贴', role: 'paste' },
+        { label: '全选', role: 'selectAll' }
+      ]
+    },
+    {
+      label: '视图',
+      submenu: [
+        ...(is.dev
+          ? ([
+              { label: '重新加载', role: 'reload' },
+              { label: '开发者工具', role: 'toggleDevTools' },
+              { type: 'separator' }
+            ] as MenuItemConstructorOptions[])
+          : []),
+        { label: '实际大小', role: 'resetZoom' },
+        { label: '放大', role: 'zoomIn' },
+        { label: '缩小', role: 'zoomOut' },
+        { type: 'separator' },
+        { label: '全屏', role: 'togglefullscreen' }
+      ]
+    },
+    {
+      label: '窗口',
+      submenu: [
+        { label: '最小化', role: 'minimize' },
+        { label: '缩放', role: 'zoom' },
+        { label: '关闭', role: 'close' }
+      ]
+    }
+  ]
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template))
+}
 
 /** 判断错误是否为"联网失败"（用于自动回退本地模型）。 */
 function isOffline(e: unknown): boolean {
@@ -64,7 +133,10 @@ function createWindow(): void {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
   // Set app user model id for windows
-  electronApp.setAppUserModelId('com.electron')
+  electronApp.setAppUserModelId('com.openfix.app')
+
+  // 原生菜单（应用名 OpenFix + 设置 ⌘, + 拷贝粘贴等）
+  buildAppMenu()
 
   // macOS：开发期把 Dock 图标设为真实 logo
   if (process.platform === 'darwin') app.dock?.setIcon(icon)

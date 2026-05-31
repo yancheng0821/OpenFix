@@ -39,7 +39,12 @@ const api = {
     ipcRenderer.invoke('agent:confirm:response', id, ok),
   getConfig: (): Promise<AppConfig> => ipcRenderer.invoke('config:get'),
   setConfig: (cfg: AppConfig): Promise<{ ok: boolean }> => ipcRenderer.invoke('config:set', cfg),
-  openMemoryFile: (): Promise<{ ok: boolean }> => ipcRenderer.invoke('memory:open')
+  openMemoryFile: (): Promise<{ ok: boolean }> => ipcRenderer.invoke('memory:open'),
+  onMenuSettings: (cb: () => void): (() => void) => {
+    const listener = (): void => cb()
+    ipcRenderer.on('menu:settings', listener)
+    return () => ipcRenderer.removeListener('menu:settings', listener)
+  }
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
