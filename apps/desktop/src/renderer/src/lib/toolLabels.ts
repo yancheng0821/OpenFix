@@ -17,7 +17,7 @@ const LABELS: Record<string, { label: string; risk: Risk }> = {
   restart_dock: { label: '重启程序坞', risk: 'write' },
   open_app: { label: '打开应用', risk: 'read' },
   open_url: { label: '打开网址', risk: 'read' },
-  remember: { label: '记住', risk: 'read' },
+  remember: { label: '更新记忆文件', risk: 'read' },
   propose_fix: { label: '执行修复', risk: 'write' },
   verify_connectivity: { label: '复测连通性', risk: 'verify' }
 }
@@ -29,6 +29,10 @@ export function toolLabel(tool: string): { label: string; risk: Risk } {
 
 /** 把工具结果压成一行 mono 技术值（时间线右侧展示，强化"深挖可信度"）。 */
 export function formatDetail(tool: string, output: unknown): string {
+  // 记忆工具返回的是确认文案字符串，把"已记住：xxx"里的 xxx 当技术值展示
+  if (tool === 'remember' && typeof output === 'string') {
+    return output.replace(/^已记住[:：]\s*/, '')
+  }
   const o = (output ?? {}) as Record<string, unknown>
   if (typeof o !== 'object') return ''
   switch (tool) {
