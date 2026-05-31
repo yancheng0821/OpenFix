@@ -136,10 +136,9 @@ app.whenReady().then(() => {
         }
       }
 
-      // 成功且有"可逆"改动 → 留还原句柄；失败(已自动还原)或无可逆改动 → 清空
+      // 有保留下来的可逆改动 → 留还原句柄（含 propose_fix）；自动型已被安全网回滚则不在其中
       const hasReversible = result.changes.some((c) => c.riskLevel === 'reversible')
-      currentRollback =
-        !result.rolledBack && hasReversible ? () => changeLog.rollbackReversible() : null
+      currentRollback = hasReversible ? () => changeLog.rollbackReversible() : null
       return result
     }
   )

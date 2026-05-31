@@ -29,4 +29,24 @@ describe('ChangeLog', () => {
     expect(order).toEqual(['rev']) // 只回滚可逆
     expect(log.list().map((c) => c.riskLevel)).toEqual(['irreversible']) // 不可逆记录保留
   })
+
+  it('rollbackAutoRevert 只回滚自动型(autoRevert!==false)，保留用户确认型', async () => {
+    const log = new ChangeLog()
+    const order: string[] = []
+    log.record({
+      description: '装软件',
+      riskLevel: 'reversible',
+      autoRevert: false,
+      rollback: async () => void order.push('install')
+    })
+    log.record({
+      description: '改 DNS',
+      riskLevel: 'reversible',
+      rollback: async () => void order.push('dns')
+    })
+    const did = await log.rollbackAutoRevert()
+    expect(did).toBe(true)
+    expect(order).toEqual(['dns']) // 只回滚自动型
+    expect(log.list().map((c) => c.description)).toEqual(['装软件']) // 确认型保留，可手动还原
+  })
 })

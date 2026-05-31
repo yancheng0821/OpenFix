@@ -102,10 +102,9 @@ export function useAgentRun(): UseAgentRun {
         ...prev,
         { role: 'assistant', content: res.text, steps: live.steps }
       ])
-      if (!res.rolledBack) {
-        const rev = res.changes.filter((c) => c.riskLevel === 'reversible')
-        if (rev.length) setChanges(rev)
-      }
+      // res.changes 已是"保留下来"的改动（propose_fix 等）；自动型回滚的不在其中
+      const rev = res.changes.filter((c) => c.riskLevel === 'reversible')
+      if (rev.length) setChanges(rev)
     } catch (e) {
       setMessages((prev) => [
         ...prev,

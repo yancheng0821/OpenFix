@@ -46,6 +46,29 @@ describe('finalizeRun', () => {
     expect(r.rolledBack).toBe(false)
     expect(r.changes).toHaveLength(1)
   })
+
+  it('propose_fix(autoRevert=false) 不被"没复测"安全网误回滚；自动型会，保留项进 changes', async () => {
+    const changeLog = new ChangeLog()
+    let installReverted = false
+    let dnsReverted = false
+    changeLog.record({
+      description: '装 QQ音乐',
+      riskLevel: 'reversible',
+      autoRevert: false,
+      rollback: async () => void (installReverted = true)
+    })
+    changeLog.record({
+      description: '改 DNS',
+      riskLevel: 'reversible',
+      rollback: async () => void (dnsReverted = true)
+    })
+    const verification = new Verification() // 没复测 passed=null
+    const r = await finalizeRun(changeLog, verification, '好了')
+    expect(dnsReverted).toBe(true) // 网络修复被安全网还原
+    expect(installReverted).toBe(false) // 装软件保留，不被误卸载
+    expect(r.rolledBack).toBe(true)
+    expect(r.changes.map((c) => c.description)).toEqual(['装 QQ音乐'])
+  })
 })
 
 describe('concludeIfNeeded', () => {

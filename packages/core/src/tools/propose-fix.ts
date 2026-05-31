@@ -26,6 +26,9 @@ export function createProposeFixTool(ctx: WriteToolContext): ToolSet {
         ctx.changeLog.record({
           description,
           riskLevel: 'reversible',
+          // 用户已确认，且这类操作（装软件/改配置）没有连通性复测——别被"没复测"安全网误回滚；
+          // 留给用户手动一键还原。
+          autoRevert: false,
           rollback: async () => {
             await ctx.shell(undo_command, undo_args, 20000)
           }

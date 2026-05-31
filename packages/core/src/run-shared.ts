@@ -93,18 +93,17 @@ export async function finalizeRun(
   verification: Verification,
   baseText: string
 ): Promise<{ text: string; changes: ChangeSummary[]; rolledBack: boolean }> {
-  const applied = changeLog.list()
-  const reversibleApplied = applied.filter((c) => c.riskLevel === 'reversible')
+  // 只有"自动应用且需复测"的修复才受安全网约束；用户确认的 propose_fix 保留（手动还原）
   let rolledBack = false
-  if (reversibleApplied.length > 0 && verification.passed !== true) {
-    await changeLog.rollbackReversible()
-    rolledBack = true
+  if (verification.passed !== true) {
+    rolledBack = await changeLog.rollbackAutoRevert()
   }
+  const changes = changeLog.list() // 还留着的改动（供"一键还原"面板）
   let text = baseText
   if (rolledBack) {
-    text = `${text}\n\n（修复没有通过复测，我已把改动全部还原，系统恢复原样。）`.trim()
+    text = `${text}\n\n（这次修复没通过复测，我已自动还原相关改动，系统恢复原样。）`.trim()
   }
-  return { text, changes: applied, rolledBack }
+  return { text, changes, rolledBack }
 }
 
 /**
