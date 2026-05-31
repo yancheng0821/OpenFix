@@ -17,6 +17,14 @@ declare global {
       rollback: () => Promise<{ ok: boolean }>
       onConfirm: (cb: (req: { id: number; description: string }) => void) => () => void
       respondConfirm: (id: number, ok: boolean) => Promise<{ ok: boolean }>
+      getConfig: () => Promise<{
+        cloud: { baseURL: string; apiKey: string; model: string }
+        local: { baseURL: string; model: string }
+      }>
+      setConfig: (cfg: {
+        cloud: { baseURL: string; apiKey: string; model: string }
+        local: { baseURL: string; model: string }
+      }) => Promise<{ ok: boolean }>
     }
   }
 }

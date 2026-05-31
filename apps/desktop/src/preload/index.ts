@@ -9,6 +9,11 @@ type RunResult = {
   rolledBack: boolean
 }
 
+type AppConfig = {
+  cloud: { baseURL: string; apiKey: string; model: string }
+  local: { baseURL: string; model: string }
+}
+
 // Custom APIs for renderer
 const api = {
   runAgent: (
@@ -30,7 +35,9 @@ const api = {
     return () => ipcRenderer.removeListener('agent:confirm', listener)
   },
   respondConfirm: (id: number, ok: boolean): Promise<{ ok: boolean }> =>
-    ipcRenderer.invoke('agent:confirm:response', id, ok)
+    ipcRenderer.invoke('agent:confirm:response', id, ok),
+  getConfig: (): Promise<AppConfig> => ipcRenderer.invoke('config:get'),
+  setConfig: (cfg: AppConfig): Promise<{ ok: boolean }> => ipcRenderer.invoke('config:set', cfg)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

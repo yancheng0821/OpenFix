@@ -1,9 +1,25 @@
 import 'dotenv/config'
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
-import { streamAgent, ChangeLog, type AgentEvent } from '@openfix/core'
+import {
+  streamAgent,
+  ChangeLog,
+  createModel,
+  networkSkillPack,
+  type AgentEvent
+} from '@openfix/core'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { loadConfig, saveConfig, type AppConfig } from './config'
+
+/** 判断错误是否为"联网失败"（用于自动回退本地模型）。 */
+function isOffline(e: unknown): boolean {
+  const err = e as { message?: string; cause?: { code?: string; message?: string } }
+  const txt = `${err?.message ?? ''} ${err?.cause?.code ?? ''} ${err?.cause?.message ?? ''}`
+  return /fetch failed|ECONNREFUSED|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|getaddrinfo|connection|Failed to fetch|network/i.test(
+    txt
+  )
+}
 
 function createWindow(): void {
   // Create the browser window.
@@ -70,16 +86,42 @@ app.whenReady().then(() => {
     'agent:run',
     async (event, messages: { role: 'user' | 'assistant'; content: string }[]) => {
       const changeLog = new ChangeLog()
-      const result = await streamAgent(messages, {
-        changeLog,
-        onEvent: (ev: AgentEvent) => event.sender.send('agent:event', ev),
-        confirm: (description: string) =>
-          new Promise<boolean>((resolve) => {
-            const id = ++confirmSeq
-            pendingConfirms.set(id, resolve)
-            event.sender.send('agent:confirm', { id, description })
+      const cfg = loadConfig()
+      const send = (ev: AgentEvent): void => {
+        event.sender.send('agent:event', ev)
+      }
+      const confirm = (description: string): Promise<boolean> =>
+        new Promise((resolve) => {
+          const id = ++confirmSeq
+          pendingConfirms.set(id, resolve)
+          event.sender.send('agent:confirm', { id, description })
+        })
+
+      let result
+      try {
+        // 默认走云端（全能力）
+        result = await streamAgent(messages, {
+          changeLog,
+          onEvent: send,
+          confirm,
+          model: createModel(cfg.cloud)
+        })
+      } catch (e) {
+        // 联网失败 → 自动切本地模型，只给网络包（断网就是修网络）
+        if (isOffline(e) && cfg.local.baseURL) {
+          send({ type: 'text', delta: '（联网失败，已切到本地模型，仅排查网络问题）\n\n' })
+          result = await streamAgent(messages, {
+            changeLog,
+            onEvent: send,
+            confirm,
+            model: createModel({ baseURL: cfg.local.baseURL, apiKey: 'ollama', model: cfg.local.model }),
+            skillPacks: [networkSkillPack]
           })
-      })
+        } else {
+          throw e
+        }
+      }
+
       // 成功且有"可逆"改动 → 留还原句柄；失败(已自动还原)或无可逆改动 → 清空
       const hasReversible = result.changes.some((c) => c.riskLevel === 'reversible')
       currentRollback =
@@ -94,6 +136,12 @@ app.whenReady().then(() => {
       resolve(ok)
       pendingConfirms.delete(id)
     }
+    return { ok: true }
+  })
+
+  ipcMain.handle('config:get', () => loadConfig())
+  ipcMain.handle('config:set', (_e, cfg: AppConfig) => {
+    saveConfig(cfg)
     return { ok: true }
   })
 
