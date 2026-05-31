@@ -7,7 +7,8 @@ import {
   createModel,
   networkSkillPack,
   type AgentEvent,
-  type MemoryEntry
+  type MemoryEntry,
+  type ModelMessage
 } from '@openfix/core'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -84,9 +85,7 @@ app.whenReady().then(() => {
   const pendingConfirms = new Map<number, (ok: boolean) => void>()
   let confirmSeq = 0
 
-  ipcMain.handle(
-    'agent:run',
-    async (event, messages: { role: 'user' | 'assistant'; content: string }[]) => {
+  ipcMain.handle('agent:run', async (event, messages: ModelMessage[]) => {
       const changeLog = new ChangeLog()
       const cfg = loadConfig()
       const memory = {

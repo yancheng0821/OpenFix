@@ -29,6 +29,8 @@ export interface AgentResult {
   toolCalls: Array<{ toolName: string; input: unknown }>
   changes: ChangeSummary[]
   rolledBack: boolean
+  /** 本轮结束后的完整对话轨迹（含工具调用/结果），回灌下一轮即多轮上下文。 */
+  messages: ModelMessage[]
 }
 
 export type AgentPhase = 'thinking' | 'investigating' | 'working' | 'fixing' | 'verifying'

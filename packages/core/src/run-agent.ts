@@ -17,9 +17,12 @@ export interface ChatMessage {
 
 /**
  * 薄 agent loop（阻塞式，一次性返回）。流式版见 streamAgent。
- * input 传字符串=单轮；传 ChatMessage[]=带上下文的多轮对话。
+ * input 传字符串=单轮；传 ModelMessage[]=带完整轨迹的多轮对话。
  */
-export async function runAgent(input: string | ChatMessage[], deps: RunDeps = {}): Promise<AgentResult> {
+export async function runAgent(
+  input: string | ModelMessage[],
+  deps: RunDeps = {}
+): Promise<AgentResult> {
   const { model, tools, system, changeLog, verification } = assembleRun(deps)
 
   const result = await generateText({
@@ -42,5 +45,9 @@ export async function runAgent(input: string | ChatMessage[], deps: RunDeps = {}
     result.text
   )
   const fin = await finalizeRun(changeLog, verification, text)
-  return { text: fin.text, toolCalls, changes: fin.changes, rolledBack: fin.rolledBack }
+  let messages: ModelMessage[] = [...original, ...(result.response.messages as ModelMessage[])]
+  if (!result.text.trim() && text.trim()) {
+    messages = [...messages, { role: 'assistant', content: text }]
+  }
+  return { text: fin.text, toolCalls, changes: fin.changes, rolledBack: fin.rolledBack, messages }
 }

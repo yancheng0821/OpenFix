@@ -7,7 +7,6 @@ import {
   type AgentResult,
   type AgentEvent
 } from './run-shared.js'
-import type { ChatMessage } from './run-agent.js'
 import type { AgentPhase } from './run-shared.js'
 
 export interface StreamDeps extends RunDeps {
@@ -56,7 +55,7 @@ export function stripThink(raw: string): string {
 
 /** 流式版 agent：边跑边通过 onEvent 推 step/text/change/verify 事件，结束 done。 */
 export async function streamAgent(
-  input: string | ChatMessage[],
+  input: string | ModelMessage[],
   deps: StreamDeps
 ): Promise<AgentResult> {
   const { model, tools, system, changeLog, verification } = assembleRun(deps)
@@ -143,11 +142,23 @@ export async function streamAgent(
     if (finalText) onEvent({ type: 'text', delta: finalText })
   }
   const fin = await finalizeRun(changeLog, verification, finalText)
+  // 串联完整轨迹：把本轮工具调用/结果接到输入之后；assistant 文本去掉思维链
+  const threaded = (response.messages as ModelMessage[]).map((m): ModelMessage =>
+    m.role === 'assistant' && typeof m.content === 'string'
+      ? { ...m, content: stripThink(m.content) }
+      : m
+  )
+  const messages: ModelMessage[] = [...original, ...threaded]
+  // 兜底补的结论（response 里没有最终文字时），补一条 assistant 进轨迹
+  if (!streamedText.trim() && finalText.trim()) {
+    messages.push({ role: 'assistant', content: finalText })
+  }
   const agentResult: AgentResult = {
     text: fin.text,
     toolCalls,
     changes: fin.changes,
-    rolledBack: fin.rolledBack
+    rolledBack: fin.rolledBack,
+    messages
   }
   onEvent({ type: 'done', result: agentResult })
   return agentResult

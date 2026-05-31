@@ -1,12 +1,13 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import type { AgentEvent } from '@openfix/core'
+import type { AgentEvent, ModelMessage } from '@openfix/core'
 
 type RunResult = {
   text: string
   toolCalls: { toolName: string; input: unknown }[]
   changes: { id: number; description: string; riskLevel: 'reversible' | 'irreversible' }[]
   rolledBack: boolean
+  messages: ModelMessage[]
 }
 
 type AppConfig = {
@@ -17,7 +18,7 @@ type AppConfig = {
 // Custom APIs for renderer
 const api = {
   runAgent: (
-    messages: { role: 'user' | 'assistant'; content: string }[],
+    messages: ModelMessage[],
     onEvent?: (event: AgentEvent) => void
   ): Promise<RunResult> => {
     if (!onEvent) return ipcRenderer.invoke('agent:run', messages)

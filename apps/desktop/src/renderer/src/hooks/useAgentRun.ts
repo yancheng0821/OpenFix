@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import type { AgentEvent } from '@openfix/core'
+import { useRef, useState } from 'react'
+import type { AgentEvent, ModelMessage } from '@openfix/core'
 
 export interface ChatMessage {
   role: 'user' | 'assistant'
@@ -78,24 +78,25 @@ export function useAgentRun(): UseAgentRun {
   const [running, setRunning] = useState(false)
   const [changes, setChanges] = useState<ChangeSummary[]>([])
   const [reverted, setReverted] = useState(false)
+  // 完整对话轨迹（含工具调用/结果），按轮回灌给模型——多轮上下文靠它，不靠提示词
+  const modelMessages = useRef<ModelMessage[]>([])
 
   async function send(text: string): Promise<void> {
     const t = text.trim()
     if (!t || running) return
-    const history: ChatMessage[] = [...messages, { role: 'user', content: t }]
-    setMessages(history)
+    setMessages((prev) => [...prev, { role: 'user', content: t }]) // 仅显示
     setRunning(true)
     setReverted(false)
     setChanges([])
     let live: RunState = { phase: 'thinking', steps: [], streamingText: '' }
     setRun(live)
     try {
-      // 发给模型只带 role/content；steps 仅用于界面
-      const forModel = history.map((m) => ({ role: m.role, content: m.content }))
-      const res = await window.api.runAgent(forModel, (ev) => {
+      const input: ModelMessage[] = [...modelMessages.current, { role: 'user', content: t }]
+      const res = await window.api.runAgent(input, (ev) => {
         live = reduceEvent(live, ev)
         setRun(live)
       })
+      modelMessages.current = res.messages // 串联本轮完整轨迹，供下一轮
       setMessages((prev) => [
         ...prev,
         { role: 'assistant', content: res.text, steps: live.steps }

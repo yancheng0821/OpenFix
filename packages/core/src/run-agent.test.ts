@@ -289,3 +289,14 @@ describe('runAgent', () => {
     expect(result.rolledBack).toBe(false)
   })
 })
+
+describe('多轮上下文：返回完整对话轨迹', () => {
+  it('result.messages 含输入消息 + 本轮 assistant 回复，可回灌下一轮', async () => {
+    const { shell } = mkShell(0)
+    const model = scripted([{ text: '你的桌面在 ~/Desktop' }])
+    const result = await runAgent([{ role: 'user', content: '我的桌面路径是啥' }], { model, shell })
+    expect(result.messages[0]).toMatchObject({ role: 'user', content: '我的桌面路径是啥' })
+    expect(result.messages.at(-1)?.role).toBe('assistant')
+    expect(result.messages.length).toBeGreaterThanOrEqual(2)
+  })
+})

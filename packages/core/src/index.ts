@@ -12,6 +12,7 @@ export type { LLMConfig } from './llm.js'
 export { streamAgent } from './stream-agent.js'
 export type { StreamDeps } from './stream-agent.js'
 export type { AgentEvent } from './run-shared.js'
+export type { ModelMessage } from 'ai'
 export {
   looksSensitive,
   composeMemoryInjection,
