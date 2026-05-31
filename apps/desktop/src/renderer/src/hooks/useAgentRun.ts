@@ -69,6 +69,7 @@ export interface UseAgentRun {
   reverted: boolean
   send: (text: string) => Promise<void>
   rollback: () => Promise<void>
+  reset: () => void
 }
 
 /** 对话 + 流式运行的状态机：消费 onEvent 实时更新，结束落地消息与可还原改动。 */
@@ -124,5 +125,15 @@ export function useAgentRun(): UseAgentRun {
     }
   }
 
-  return { messages, run, running, changes, reverted, send, rollback }
+  /** 新开对话：清空全部会话态（含完整轨迹），回到欢迎页。运行中不动。 */
+  function reset(): void {
+    if (running) return
+    modelMessages.current = []
+    setMessages([])
+    setChanges([])
+    setReverted(false)
+    setRun(initialRun)
+  }
+
+  return { messages, run, running, changes, reverted, send, rollback, reset }
 }

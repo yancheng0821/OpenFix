@@ -95,6 +95,28 @@ body {
   border-radius: 5px;
   display: block;
 }
+.titlebar__new {
+  position: absolute;
+  left: 78px; /* 让开左上角红绿灯交通灯 */
+  top: 50%;
+  transform: translateY(-50%);
+  -webkit-app-region: no-drag;
+  border: 1px solid var(--hairline);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 12px;
+  border-radius: 8px;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+.titlebar__new:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.titlebar__new:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
 
 .log {
   flex: 1;

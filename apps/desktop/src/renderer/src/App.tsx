@@ -60,7 +60,7 @@ interface AppConfig {
 }
 
 function App(): React.JSX.Element {
-  const { messages, run, running, changes, reverted, send, rollback } = useAgentRun()
+  const { messages, run, running, changes, reverted, send, rollback, reset } = useAgentRun()
   const confirm = useConfirm()
   const [input, setInput] = useState('')
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -107,6 +107,17 @@ function App(): React.JSX.Element {
   return (
     <div className="app">
       <header className="titlebar">
+        {messages.length > 0 && (
+          <button
+            className="titlebar__new"
+            onClick={reset}
+            disabled={running}
+            aria-label="新对话"
+            title="新对话"
+          >
+            ＋ 新对话
+          </button>
+        )}
         <span className="titlebar__ctr">
           <img className="titlebar__logo" src={logo} alt="" aria-hidden />
           OpenFix
