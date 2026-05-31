@@ -18,10 +18,12 @@ function MD({ children }: { children: string }): React.JSX.Element {
 
 const EXAMPLES = ['我连不上网', 'GitHub 打不开', '网速很慢', '电脑好卡']
 const PHASE_LABEL: Record<string, string> = {
+  thinking: '正在思考…',
   investigating: '正在排查',
+  working: '正在操作',
   fixing: '正在修复',
   verifying: '正在复测',
-  idle: '正在排查'
+  idle: '正在思考…'
 }
 
 interface AppConfig {
@@ -114,7 +116,7 @@ function App(): React.JSX.Element {
           <div className="activity" aria-label="排查进度">
             <div className="pill">
               <span className="pulse" aria-hidden />
-              {PHASE_LABEL[run.phase] ?? '正在排查'}
+              {PHASE_LABEL[run.phase] ?? '正在思考…'}
               {pillTail && <span className="pill__tail"> · {pillTail}</span>}
             </div>
             {run.steps.length > 0 && (

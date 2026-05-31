@@ -8,9 +8,24 @@ import {
   type AgentEvent
 } from './run-shared.js'
 import type { ChatMessage } from './run-agent.js'
+import type { AgentPhase } from './run-shared.js'
 
 export interface StreamDeps extends RunDeps {
   onEvent: (event: AgentEvent) => void
+}
+
+/** 把工具映射到"它当下在做什么"，让界面状态贴合实际（不是一律"排查"）。 */
+function phaseForTool(tool: string): AgentPhase {
+  if (tool.startsWith('verify')) return 'verifying'
+  if (tool === 'open_app' || tool === 'open_url') return 'working'
+  if (
+    tool === 'run_diagnostic' ||
+    tool.startsWith('check_') ||
+    tool.startsWith('get_') ||
+    tool.startsWith('resolve_')
+  )
+    return 'investigating'
+  return 'fixing'
 }
 
 /** 流式版 agent：边跑边通过 onEvent 推 step/text/change/verify 事件，结束 done。 */
@@ -21,7 +36,8 @@ export async function streamAgent(
   const { model, tools, system, changeLog, verification } = assembleRun(deps)
   const { onEvent } = deps
 
-  onEvent({ type: 'phase', phase: 'investigating' })
+  // 默认中性"思考"——纯对话/回答时不该显示"正在排查"
+  onEvent({ type: 'phase', phase: 'thinking' })
 
   const result = streamText({
     model,
@@ -45,7 +61,7 @@ export async function streamAgent(
         error?: unknown
       }
       if (p.type === 'tool-call' && p.toolName) {
-        if (p.toolName.startsWith('verify')) onEvent({ type: 'phase', phase: 'verifying' })
+        onEvent({ type: 'phase', phase: phaseForTool(p.toolName) })
         onEvent({ type: 'step', id: p.toolCallId ?? p.toolName, tool: p.toolName })
       } else if (p.type === 'tool-result') {
         onEvent({ type: 'step-done', id: p.toolCallId ?? '', output: p.output ?? p.result })

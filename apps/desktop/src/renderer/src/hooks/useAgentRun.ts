@@ -12,7 +12,7 @@ export interface ChangeSummary {
   riskLevel: 'reversible' | 'irreversible'
 }
 
-export type RunPhase = 'idle' | 'investigating' | 'fixing' | 'verifying'
+export type RunPhase = 'idle' | 'thinking' | 'investigating' | 'working' | 'fixing' | 'verifying'
 
 export interface RunStep {
   id: string
@@ -85,7 +85,7 @@ export function useAgentRun(): UseAgentRun {
     setRunning(true)
     setReverted(false)
     setChanges([])
-    let live: RunState = { phase: 'investigating', steps: [], streamingText: '' }
+    let live: RunState = { phase: 'thinking', steps: [], streamingText: '' }
     setRun(live)
     try {
       const res = await window.api.runAgent(history, (ev) => {

@@ -28,8 +28,10 @@ export interface AgentResult {
   rolledBack: boolean
 }
 
+export type AgentPhase = 'thinking' | 'investigating' | 'working' | 'fixing' | 'verifying'
+
 export type AgentEvent =
-  | { type: 'phase'; phase: 'investigating' | 'fixing' | 'verifying' }
+  | { type: 'phase'; phase: AgentPhase }
   | { type: 'step'; id: string; tool: string }
   | { type: 'step-done'; id: string; output: unknown }
   | { type: 'text'; delta: string }
