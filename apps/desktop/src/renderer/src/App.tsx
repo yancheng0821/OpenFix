@@ -201,7 +201,7 @@ function App(): React.JSX.Element {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="说说你的电脑/网络问题…"
+            placeholder="电脑上的事，尽管跟我说…"
             rows={1}
             disabled={running}
           />
