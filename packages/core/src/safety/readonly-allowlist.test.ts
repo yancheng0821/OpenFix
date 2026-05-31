@@ -61,6 +61,14 @@ describe('isReadOnlyAllowed', () => {
     expect(isReadOnlyAllowed('printenv', []).allowed).toBe(false)
   })
 
+  it('route：查活动网卡放行，改路由拒绝', () => {
+    expect(isReadOnlyAllowed('route', ['-n', 'get', 'default']).allowed).toBe(true)
+    expect(isReadOnlyAllowed('route', ['get', 'default']).allowed).toBe(true)
+    expect(isReadOnlyAllowed('route', ['add', '-net', '10.0.0.0', '1.2.3.4']).allowed).toBe(false)
+    expect(isReadOnlyAllowed('route', ['delete', 'default']).allowed).toBe(false)
+    expect(isReadOnlyAllowed('route', ['flush']).allowed).toBe(false)
+  })
+
   it('app 诊断只读命令放行，写子命令拒绝', () => {
     expect(isReadOnlyAllowed('mdls', ['/Applications/Safari.app']).allowed).toBe(true)
     expect(isReadOnlyAllowed('xattr', ['-p', 'com.apple.quarantine', '/Applications/X.app']).allowed).toBe(true)

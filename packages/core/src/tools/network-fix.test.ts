@@ -1,9 +1,25 @@
 import { describe, it, expect } from 'vitest'
 import { ChangeLog } from '../safety/change-log'
 import type { ShellResult } from '../shell'
-import { createNetworkFixTools } from './network-fix'
+import { createNetworkFixTools, serviceForDevice, deviceForHardwarePort } from './network-fix'
 
 const okOptions = { toolCallId: 't1', messages: [] } as never
+
+const SERVICE_ORDER = `An asterisk (*) denotes that a network service is disabled.
+(1) Wi-Fi
+(Hardware Port: Wi-Fi, Device: en0)
+
+(2) USB 10/100/1000 LAN
+(Hardware Port: USB 10/100/1000 LAN, Device: en7)
+`
+
+const HARDWARE_PORTS = `Hardware Port: Wi-Fi
+Device: en1
+Ethernet Address: aa:bb
+
+Hardware Port: USB 10/100/1000 LAN
+Device: en7
+`
 
 /** 记录 shell 调用、并按子命令返回设定输出。 */
 function mockShell(getdnsOut: string): {
@@ -100,5 +116,50 @@ describe('restart_wifi', () => {
     expect(calls).toContain('networksetup -setairportpower en0 off')
     expect(calls).toContain('networksetup -setairportpower en0 on')
     expect(changeLog.list()).toHaveLength(1)
+  })
+
+  it('省略 device：自动探测 Wi-Fi 设备（en1）', async () => {
+    const calls: string[] = []
+    const shell = async (cmd: string, args: string[]): Promise<ShellResult> => {
+      calls.push([cmd, ...args].join(' '))
+      if (args.includes('-listallhardwareports'))
+        return { code: 0, stdout: HARDWARE_PORTS, stderr: '' }
+      return { code: 0, stdout: 'Wi-Fi Power (en1): On', stderr: '' }
+    }
+    const tools = createNetworkFixTools({ shell, changeLog: new ChangeLog() })
+    await tools.restart_wifi.execute!({}, okOptions)
+    expect(calls).toContain('networksetup -setairportpower en1 off')
+    expect(calls).toContain('networksetup -setairportpower en1 on')
+  })
+})
+
+describe('活动网卡解析', () => {
+  it('serviceForDevice：按 enX 找到服务名', () => {
+    expect(serviceForDevice(SERVICE_ORDER, 'en7')).toBe('USB 10/100/1000 LAN')
+    expect(serviceForDevice(SERVICE_ORDER, 'en0')).toBe('Wi-Fi')
+    expect(serviceForDevice(SERVICE_ORDER, 'en9')).toBeNull()
+  })
+
+  it('deviceForHardwarePort：按端口名找到设备名', () => {
+    expect(deviceForHardwarePort(HARDWARE_PORTS, 'Wi-Fi')).toBe('en1')
+    expect(deviceForHardwarePort(HARDWARE_PORTS, 'USB 10/100/1000 LAN')).toBe('en7')
+  })
+
+  it('set_dns_servers 省略 service：作用于默认路由所在网卡（以太网 en7）而非写死 Wi-Fi', async () => {
+    const calls: string[] = []
+    const shell = async (cmd: string, args: string[]): Promise<ShellResult> => {
+      calls.push([cmd, ...args].join(' '))
+      if (cmd === 'route') return { code: 0, stdout: 'gateway: 1.2.3.1\n  interface: en7\n', stderr: '' }
+      if (args.includes('-listnetworkserviceorder'))
+        return { code: 0, stdout: SERVICE_ORDER, stderr: '' }
+      if (args.includes('-getdnsservers'))
+        return { code: 0, stdout: "There aren't any DNS Servers set.", stderr: '' }
+      return { code: 0, stdout: '', stderr: '' }
+    }
+    const tools = createNetworkFixTools({ shell, changeLog: new ChangeLog() })
+    const out = (await tools.set_dns_servers.execute!({ servers: ['1.1.1.1'] }, okOptions)) as string
+    expect(calls).toContain('networksetup -setdnsservers USB 10/100/1000 LAN 1.1.1.1')
+    expect(calls).not.toContain('networksetup -setdnsservers Wi-Fi 1.1.1.1')
+    expect(out).toMatch(/USB 10\/100\/1000 LAN/)
   })
 })

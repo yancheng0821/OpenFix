@@ -31,6 +31,10 @@ const versionOnly = (args: string[]): boolean =>
 /** 双用命令：只有满足条件的子命令/参数才算只读。 */
 const GATED: Record<string, (args: string[]) => boolean> = {
   networksetup: (a) => /^-(get|list)/.test(a[0] ?? ''),
+  // route：只放行只读子命令（查活动网卡 route get default / 监听），拒绝增删改路由
+  route: (a) =>
+    (a.includes('get') || a.includes('monitor')) &&
+    !a.some((x) => ['add', 'delete', 'change', 'flush', '-f'].includes(x)),
   pmset: (a) => a[0] === '-g',
   scutil: (a) => a.some((x) => x === '--dns' || x === '--proxy' || x === '--nwi'),
   top: (a) => a.includes('-l'),

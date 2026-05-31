@@ -21,4 +21,9 @@ describe('networkSkillPack', () => {
   it('带网络域的系统提示（含复测要求）', () => {
     expect(networkSkillPack.systemPrompt).toMatch(/verify_connectivity/)
   })
+
+  it('系统提示要求先查活动网卡、并认识 fake-ip', () => {
+    expect(networkSkillPack.systemPrompt).toMatch(/route -n get default/)
+    expect(networkSkillPack.systemPrompt).toMatch(/198\.18/)
+  })
 })

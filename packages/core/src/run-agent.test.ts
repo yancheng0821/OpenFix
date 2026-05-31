@@ -6,16 +6,17 @@ import { runAgent } from './run-agent'
 import { ChangeLog } from './safety/change-log'
 import type { SkillPack } from './skills/skill-pack'
 
-// —— 2b 辅助：可配置 ping 退出码的 mock shell（networksetup 恒成功）——
-function mkShell(pingCode: number): {
+// —— 2b 辅助：可配置复测结果的 mock shell（reachableCode=0 表示能上网；networksetup 恒成功）——
+function mkShell(reachableCode: number): {
   shell: (c: string, a: string[]) => Promise<{ code: number; stdout: string; stderr: string }>
   calls: string[]
 } {
+  const ok = reachableCode === 0
   const calls: string[] = []
   const shell = async (cmd: string, args: string[]) => {
     calls.push([cmd, ...args].join(' '))
-    if (cmd === 'ping')
-      return { code: pingCode, stdout: pingCode === 0 ? 'time=10 ms' : 'timeout', stderr: '' }
+    // verify_connectivity 现在用 curl 真探测：返回 http_code
+    if (cmd === 'curl') return { code: ok ? 0 : 7, stdout: ok ? '200' : '000', stderr: '' }
     if (args.includes('-getdnsservers'))
       return { code: 0, stdout: "There aren't any DNS Servers set on Wi-Fi.", stderr: '' }
     return { code: 0, stdout: '', stderr: '' }
