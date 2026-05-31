@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import logo from './assets/logo.png'
 import { useAgentRun } from './hooks/useAgentRun'
+import { useConfirm } from './hooks/useConfirm'
 import { toolLabel, formatDetail } from './lib/toolLabels'
 
 const EXAMPLES = ['我连不上网', 'GitHub 打不开', '网速很慢', '电脑好卡']
@@ -16,6 +17,7 @@ const PHASE_LABEL: Record<string, string> = {
 
 function App(): React.JSX.Element {
   const { messages, run, running, changes, reverted, send, rollback } = useAgentRun()
+  const confirm = useConfirm()
   const [input, setInput] = useState('')
   const logRef = useRef<HTMLDivElement>(null)
 
@@ -160,6 +162,23 @@ function App(): React.JSX.Element {
         </div>
         <div className="hint mono">↩ 发送 · ⇧↩ 换行</div>
       </div>
+
+      {confirm.request && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal__title">需要你确认</div>
+            <pre className="modal__desc">{confirm.request.description}</pre>
+            <div className="modal__actions">
+              <button className="modal__cancel" onClick={() => confirm.respond(false)}>
+                取消
+              </button>
+              <button className="modal__ok" onClick={() => confirm.respond(true)}>
+                确认执行
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

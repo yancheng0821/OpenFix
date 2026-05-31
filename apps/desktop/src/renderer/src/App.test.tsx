@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import App from './App'
 
 beforeEach(() => {
@@ -10,7 +10,9 @@ beforeEach(() => {
       changes: [],
       rolledBack: false
     }),
-    rollback: vi.fn().mockResolvedValue({ ok: true })
+    rollback: vi.fn().mockResolvedValue({ ok: true }),
+    onConfirm: vi.fn().mockReturnValue(() => {}),
+    respondConfirm: vi.fn().mockResolvedValue({ ok: true })
   }
 })
 
@@ -55,5 +57,14 @@ describe('App 对话式', () => {
     fireEvent.click(screen.getByText('一键还原'))
     await waitFor(() => expect(window.api.rollback).toHaveBeenCalled())
     await waitFor(() => expect(screen.getByText('已还原')).toBeInTheDocument())
+  })
+
+  it('收到确认请求时弹窗，点确认回传 respondConfirm', () => {
+    render(<App />)
+    const cb = (window.api.onConfirm as ReturnType<typeof vi.fn>).mock.calls[0][0]
+    act(() => cb({ id: 7, description: '关闭挡路的代理' }))
+    expect(screen.getByText('关闭挡路的代理')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('确认执行'))
+    expect(window.api.respondConfirm).toHaveBeenCalledWith(7, true)
   })
 })

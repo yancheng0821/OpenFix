@@ -62,6 +62,9 @@ app.whenReady().then(() => {
 
   // OpenFix：main 进程持有"最近一次运行"的还原句柄（rollback 是闭包，不能跨 IPC 序列化）
   let currentRollback: (() => Promise<void>) | null = null
+  // 不可逆/通用写操作的确认请求：main 发请求给渲染层、等用户回应
+  const pendingConfirms = new Map<number, (ok: boolean) => void>()
+  let confirmSeq = 0
 
   ipcMain.handle(
     'agent:run',
@@ -69,7 +72,13 @@ app.whenReady().then(() => {
       const changeLog = new ChangeLog()
       const result = await streamAgent(messages, {
         changeLog,
-        onEvent: (ev: AgentEvent) => event.sender.send('agent:event', ev)
+        onEvent: (ev: AgentEvent) => event.sender.send('agent:event', ev),
+        confirm: (description: string) =>
+          new Promise<boolean>((resolve) => {
+            const id = ++confirmSeq
+            pendingConfirms.set(id, resolve)
+            event.sender.send('agent:confirm', { id, description })
+          })
       })
       // 成功且有"可逆"改动 → 留还原句柄；失败(已自动还原)或无可逆改动 → 清空
       const hasReversible = result.changes.some((c) => c.riskLevel === 'reversible')
@@ -78,6 +87,15 @@ app.whenReady().then(() => {
       return result
     }
   )
+
+  ipcMain.handle('agent:confirm:response', (_e, id: number, ok: boolean) => {
+    const resolve = pendingConfirms.get(id)
+    if (resolve) {
+      resolve(ok)
+      pendingConfirms.delete(id)
+    }
+    return { ok: true }
+  })
 
   ipcMain.handle('agent:rollback', async () => {
     if (!currentRollback) return { ok: false }

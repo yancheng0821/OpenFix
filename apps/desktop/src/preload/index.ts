@@ -22,7 +22,15 @@ const api = {
       ipcRenderer.removeListener('agent:event', listener)
     )
   },
-  rollback: (): Promise<{ ok: boolean }> => ipcRenderer.invoke('agent:rollback')
+  rollback: (): Promise<{ ok: boolean }> => ipcRenderer.invoke('agent:rollback'),
+  onConfirm: (cb: (req: { id: number; description: string }) => void): (() => void) => {
+    const listener = (_e: IpcRendererEvent, req: { id: number; description: string }): void =>
+      cb(req)
+    ipcRenderer.on('agent:confirm', listener)
+    return () => ipcRenderer.removeListener('agent:confirm', listener)
+  },
+  respondConfirm: (id: number, ok: boolean): Promise<{ ok: boolean }> =>
+    ipcRenderer.invoke('agent:confirm:response', id, ok)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

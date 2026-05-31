@@ -15,6 +15,8 @@ declare global {
         rolledBack: boolean
       }>
       rollback: () => Promise<{ ok: boolean }>
+      onConfirm: (cb: (req: { id: number; description: string }) => void) => () => void
+      respondConfirm: (id: number, ok: boolean) => Promise<{ ok: boolean }>
     }
   }
 }
