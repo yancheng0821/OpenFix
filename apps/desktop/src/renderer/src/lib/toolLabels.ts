@@ -9,6 +9,8 @@ const LABELS: Record<string, { label: string; risk: Risk }> = {
   check_disk_space: { label: '查看磁盘空间', risk: 'read' },
   check_app_installed: { label: '检查软件安装', risk: 'read' },
   set_dns_servers: { label: '修改 DNS', risk: 'write' },
+  clear_proxy: { label: '关闭代理', risk: 'write' },
+  restart_wifi: { label: '重启 Wi-Fi', risk: 'write' },
   empty_trash: { label: '清空废纸篓', risk: 'write' },
   verify_connectivity: { label: '复测连通性', risk: 'verify' }
 }

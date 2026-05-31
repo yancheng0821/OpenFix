@@ -10,7 +10,12 @@ describe('networkSkillPack', () => {
       changeLog: new ChangeLog(),
       verification: new Verification()
     })
-    expect(Object.keys(tools).sort()).toEqual(['set_dns_servers', 'verify_connectivity'])
+    expect(Object.keys(tools).sort()).toEqual([
+      'clear_proxy',
+      'restart_wifi',
+      'set_dns_servers',
+      'verify_connectivity'
+    ])
   })
 
   it('带网络域的系统提示（含复测要求）', () => {

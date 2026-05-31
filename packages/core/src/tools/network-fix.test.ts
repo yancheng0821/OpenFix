@@ -53,3 +53,52 @@ describe('set_dns_servers', () => {
     expect(calls).toContain('networksetup -setdnsservers Wi-Fi Empty')
   })
 })
+
+function flexShell(outs: { proxy?: string; power?: string }): {
+  shell: (c: string, a: string[]) => Promise<ShellResult>
+  calls: string[]
+} {
+  const calls: string[] = []
+  const shell = async (cmd: string, args: string[]): Promise<ShellResult> => {
+    calls.push([cmd, ...args].join(' '))
+    if (args.includes('-getwebproxy') || args.includes('-getsecurewebproxy')) {
+      return { code: 0, stdout: outs.proxy ?? '', stderr: '' }
+    }
+    if (args.includes('-getairportpower')) return { code: 0, stdout: outs.power ?? '', stderr: '' }
+    return { code: 0, stdout: '', stderr: '' }
+  }
+  return { shell, calls }
+}
+
+describe('clear_proxy', () => {
+  it('关闭代理：先快照，再关 web+secure，并记账', async () => {
+    const { shell, calls } = flexShell({ proxy: 'Enabled: Yes\nServer: 127.0.0.1\nPort: 7890' })
+    const changeLog = new ChangeLog()
+    const tools = createNetworkFixTools({ shell, changeLog })
+    await tools.clear_proxy.execute!({ service: 'Wi-Fi' }, okOptions)
+    expect(calls).toContain('networksetup -setwebproxystate Wi-Fi off')
+    expect(calls).toContain('networksetup -setsecurewebproxystate Wi-Fi off')
+    expect(changeLog.list()).toHaveLength(1)
+  })
+
+  it('回滚：原本开着 → 恢复代理 server/port', async () => {
+    const { shell, calls } = flexShell({ proxy: 'Enabled: Yes\nServer: 127.0.0.1\nPort: 7890' })
+    const changeLog = new ChangeLog()
+    const tools = createNetworkFixTools({ shell, changeLog })
+    await tools.clear_proxy.execute!({ service: 'Wi-Fi' }, okOptions)
+    await changeLog.rollbackAll()
+    expect(calls).toContain('networksetup -setwebproxy Wi-Fi 127.0.0.1 7890')
+  })
+})
+
+describe('restart_wifi', () => {
+  it('重启 Wi-Fi：先 off 再 on', async () => {
+    const { shell, calls } = flexShell({ power: 'Wi-Fi Power (en0): On' })
+    const changeLog = new ChangeLog()
+    const tools = createNetworkFixTools({ shell, changeLog })
+    await tools.restart_wifi.execute!({ device: 'en0' }, okOptions)
+    expect(calls).toContain('networksetup -setairportpower en0 off')
+    expect(calls).toContain('networksetup -setairportpower en0 on')
+    expect(changeLog.list()).toHaveLength(1)
+  })
+})
