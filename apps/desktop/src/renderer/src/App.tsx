@@ -3,7 +3,7 @@ import './App.css'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import logo from './assets/logo.png'
-import { useAgentRun } from './hooks/useAgentRun'
+import { useAgentRun, type RunStep } from './hooks/useAgentRun'
 import { useConfirm } from './hooks/useConfirm'
 import { useTypewriter } from './hooks/useTypewriter'
 import { toolLabel, formatDetail } from './lib/toolLabels'
@@ -14,6 +14,33 @@ function MD({ children }: { children: string }): React.JSX.Element {
     <div className="md">
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{children}</ReactMarkdown>
     </div>
+  )
+}
+
+/** 执行过的步骤清单（运行中实时显示；完成后折叠保留供查看）。 */
+function StepList({ steps }: { steps: RunStep[] }): React.JSX.Element {
+  return (
+    <ul className="timeline">
+      {steps.map((s) => {
+        const { label, risk } = toolLabel(s.tool)
+        const detail = s.status === 'done' ? formatDetail(s.tool, s.output) : ''
+        return (
+          <li key={s.id} className="tl">
+            <span className="tl__ts mono">{s.at}</span>
+            <span className={`tl__ic ${s.status === 'done' ? 'done' : `r-${risk}`}`}>
+              {s.status === 'done' ? '✓' : '⏳'}
+            </span>
+            <span className="tl__body">
+              {label}
+              {detail && <span className="tl__val mono">{detail}</span>}
+              {risk === 'write' && s.status === 'done' && (
+                <span className="tl__chip">已快照·可还原</span>
+              )}
+            </span>
+          </li>
+        )
+      })}
+    </ul>
   )
 }
 
@@ -112,6 +139,12 @@ function App(): React.JSX.Element {
             <div className="msg__bubble">
               {m.role === 'assistant' ? <MD>{m.content}</MD> : m.content}
             </div>
+            {m.role === 'assistant' && m.steps && m.steps.length > 0 && (
+              <details className="ran">
+                <summary className="ran__sum">查看执行过程（{m.steps.length} 步）</summary>
+                <StepList steps={m.steps} />
+              </details>
+            )}
           </div>
         ))}
 
@@ -122,29 +155,7 @@ function App(): React.JSX.Element {
               {PHASE_LABEL[run.phase] ?? '正在思考…'}
               {pillTail && <span className="pill__tail"> · {pillTail}</span>}
             </div>
-            {run.steps.length > 0 && (
-              <ul className="timeline">
-                {run.steps.map((s) => {
-                  const { label, risk } = toolLabel(s.tool)
-                  const detail = s.status === 'done' ? formatDetail(s.tool, s.output) : ''
-                  return (
-                    <li key={s.id} className="tl">
-                      <span className="tl__ts mono">{s.at}</span>
-                      <span className={`tl__ic ${s.status === 'done' ? 'done' : `r-${risk}`}`}>
-                        {s.status === 'done' ? '✓' : '⏳'}
-                      </span>
-                      <span className="tl__body">
-                        {label}
-                        {detail && <span className="tl__val mono">{detail}</span>}
-                        {risk === 'write' && s.status === 'done' && (
-                          <span className="tl__chip">已快照·可还原</span>
-                        )}
-                      </span>
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
+            {run.steps.length > 0 && <StepList steps={run.steps} />}
             {run.streamingText && (
               <div className="concl">
                 <MD>{streamed}</MD>

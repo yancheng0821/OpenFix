@@ -154,10 +154,12 @@ body {
 
 .msg {
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   margin-bottom: 12px;
 }
 .msg--user {
-  justify-content: flex-end;
+  align-items: flex-end;
 }
 .msg__bubble {
   max-width: 82%;
@@ -237,6 +239,31 @@ body {
   align-self: stretch;
   padding: 2px 2px 4px;
   margin-bottom: 10px;
+}
+
+/* 完成后折叠保留的执行过程 */
+.ran {
+  max-width: 82%;
+  margin: 5px 2px 0;
+}
+.ran__sum {
+  cursor: pointer;
+  font-size: 11.5px;
+  color: var(--text-3);
+  list-style: none;
+  user-select: none;
+}
+.ran__sum::-webkit-details-marker {
+  display: none;
+}
+.ran__sum::before {
+  content: '▸ ';
+}
+.ran[open] .ran__sum::before {
+  content: '▾ ';
+}
+.ran .timeline {
+  margin-top: 7px;
 }
 .pill {
   display: inline-flex;

@@ -4,6 +4,8 @@ import type { AgentEvent } from '@openfix/core'
 export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
+  /** 仅用于界面：这条 assistant 回复背后跑过的步骤（折叠展示）。不发给模型。 */
+  steps?: RunStep[]
 }
 
 export interface ChangeSummary {
@@ -88,11 +90,16 @@ export function useAgentRun(): UseAgentRun {
     let live: RunState = { phase: 'thinking', steps: [], streamingText: '' }
     setRun(live)
     try {
-      const res = await window.api.runAgent(history, (ev) => {
+      // 发给模型只带 role/content；steps 仅用于界面
+      const forModel = history.map((m) => ({ role: m.role, content: m.content }))
+      const res = await window.api.runAgent(forModel, (ev) => {
         live = reduceEvent(live, ev)
         setRun(live)
       })
-      setMessages((prev) => [...prev, { role: 'assistant', content: res.text }])
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: res.text, steps: live.steps }
+      ])
       if (!res.rolledBack) {
         const rev = res.changes.filter((c) => c.riskLevel === 'reversible')
         if (rev.length) setChanges(rev)
